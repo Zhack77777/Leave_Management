@@ -1,0 +1,27 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "users": {
+      ".indexOn": ["managerId"],
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'ADMIN')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'ADMIN')"
+      }
+    },
+    "leave_balances": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'ADMIN' || root.child('users').child(auth.uid).child('role').val() === 'MANAGER')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'ADMIN')"
+      }
+    },
+    "leave_requests": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ["status", "userId"],
+      "$request_id": {
+        ".validate": "newData.hasChildren(['userId', 'startDate', 'endDate', 'status'])"
+      }
+    }
+  }
+} 

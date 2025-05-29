@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Management System - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="wrapper">
+            <!-- Sidebar -->
+        <nav id="sidebar" class="active">
+            <div class="sidebar-header">
+                <h3>Leave Management</h3>
+                <strong>LMS</strong>
+            </div>
+
+            <ul class="list-unstyled components">
+                <li class="active">
+                    <a href="#dashboard" data-section="dashboard">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                
+                <!-- Employee Sections -->
+                <li class="employee-section">
+                    <a href="#apply-leave" data-section="apply-leave">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Apply Leave</span>
+                    </a>
+                </li>
+                <li class="employee-section">
+                    <a href="#leave-status" data-section="leave-status">
+                        <i class="fas fa-history"></i>
+                        <span>Leave Status</span>
+                    </a>
+                </li>
+                <li class="employee-section">
+                    <a href="#team-calendar" data-section="team-calendar">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Team Calendar</span>
+                    </a>
+                </li>
+                
+                <!-- Manager Sections -->
+                <li class="manager-section d-none">
+                    <a href="#team-calendar" data-section="team-calendar">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Team Calendar</span>
+                    </a>
+                </li>
+                <li class="manager-section d-none">
+                    <a href="#approvals" data-section="approvals">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Approvals</span>
+                    </a>
+                </li>
+                <li class="manager-section d-none">
+                    <a href="#team-leave" data-section="team-leave">
+                        <i class="fas fa-users"></i>
+                        <span>Team Leave</span>
+                    </a>
+                </li>
+                
+                <!-- Admin Sections -->
+                <li class="admin-section d-none">
+                    <a href="#user-management" data-section="user-management">
+                        <i class="fas fa-user-cog"></i>
+                        <span>User Management</span>
+                    </a>
+                </li>
+                <li class="admin-section d-none">
+                    <a href="#leave-types" data-section="leave-types">
+                        <i class="fas fa-tags"></i>
+                        <span>Leave Types</span>
+                    </a>
+                </li>
+                <li class="admin-section d-none">
+                    <a href="#assign-leave" data-section="assign-leave">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Assign Leave</span>
+                    </a>
+                </li>
+                <li class="admin-section d-none">
+                    <a href="#company-holidays" data-section="company-holidays">
+                        <i class="fas fa-calendar-day"></i>
+                        <span>Company Holidays</span>
+                    </a>
+                </li>
+                <li class="admin-section d-none">
+                    <a href="#reports" data-section="reports">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <button type="button" id="sidebarCollapse" class="btn btn-info">
+                        <i class="fas fa-align-left"></i>
+                    </button>
+                    <div class="user-info ms-auto">
+                        <span id="currentUserRole" class="badge bg-primary me-2"></span>
+                        <span id="currentUserName" class="me-2"></span>
+                        <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Logout</button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content Area -->
+            <div class="container-fluid">
+                <div id="sectionContent">
+                    <!-- Content will be loaded dynamically based on section -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h2 id="sectionTitle">Dashboard</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    
+                    <div id="dashboardContent">
+                        <!-- Dashboard content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="applyLeaveModal" tabindex="-1" aria-hidden="true">
+        <!-- Apply Leave Modal Content -->
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-modal="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addUserForm">
+                        <div class="mb-3">
+                            <label for="newUserName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="newUserName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="newUserEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="newUserPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserRole" class="form-label">Role</label>
+                            <select class="form-select" id="newUserRole" required>
+                                <option value="">Select role</option>
+                                <option value="employee">Employee</option>
+                                <option value="manager">Manager</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Create User</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Leave Type Modal -->
+    <div class="modal fade" id="addLeaveTypeModal" tabindex="-1" role="dialog" aria-labelledby="addLeaveTypeModalLabel" aria-modal="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addLeaveTypeModalLabel">Add Leave Type</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addLeaveTypeForm">
+                        <div class="mb-3">
+                            <label for="leaveTypeName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="leaveTypeName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="leaveTypeDesc" class="form-label">Description</label>
+                            <textarea class="form-control" id="leaveTypeDesc" rows="3"></textarea>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Add Leave Type</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Holiday Modal -->
+    <div class="modal fade" id="addHolidayModal" tabindex="-1" role="dialog" aria-labelledby="addHolidayModalLabel" aria-modal="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addHolidayModalLabel">Add Company Holiday</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addHolidayForm">
+                        <div class="mb-3">
+                            <label for="holidayName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="holidayName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="holidayDate" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="holidayDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="holidayDesc" class="form-label">Description</label>
+                            <textarea class="form-control" id="holidayDesc" rows="3"></textarea>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Add Holiday</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Third Party Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/js/all.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Firebase Core and Services -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    
+    <!-- Initialize Firebase -->
+    <script>
+        // Create the shared module
+        window.firebaseShared = {
+            auth: null,
+            database: null,
+            isInitialized: false,
+            
+            initialize: function(firebaseAuth, firebaseDatabase) {
+                console.log('Initializing shared Firebase instances...');
+                this.auth = firebaseAuth;
+                this.database = firebaseDatabase;
+                this.isInitialized = true;
+                console.log('Firebase shared instances initialized successfully');
+            },
+
+            getAuth: function() {
+                if (!this.isInitialized) {
+                    throw new Error('Firebase shared instances not initialized');
+                }
+                return this.auth;
+            },
+
+            getDatabase: function() {
+                if (!this.isInitialized) {
+                    throw new Error('Firebase shared instances not initialized');
+                }
+                return this.database;
+            }
+        };
+        
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWFCB1zLJiOkKPoGwoiWjovxxqdZ9OSXQ",
+            authDomain: "leave-management-e0cb3.firebaseapp.com",
+            databaseURL: "https://leave-management-e0cb3-default-rtdb.firebaseio.com",
+            projectId: "leave-management-e0cb3",
+            storageBucket: "leave-management-e0cb3.appspot.com",
+            messagingSenderId: "801689820903",
+            appId: "1:801689820903:web:6e004f5c3d7fad43dc8c42",
+            measurementId: "G-YNFFSZ68TN"
+        };
+
+        // Initialize Firebase when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                console.log('Starting Firebase initialization...');
+                
+                // Initialize Firebase App
+                firebase.initializeApp(firebaseConfig);
+                console.log('Firebase app initialized');
+
+                // Get Firebase services
+                const auth = firebase.auth();
+                const database = firebase.database();
+                console.log('Firebase services obtained');
+
+                // Initialize shared module
+                window.firebaseShared.initialize(auth, database);
+                console.log('Shared module initialized');
+
+                // Test database connection
+                database.ref('.info/connected').on('value', (snap) => {
+                    console.log('Database connection state:', snap.val());
+                });
+
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;text-align:center;';
+                errorDiv.textContent = 'Error connecting to the database. Please try again later.';
+                document.body.prepend(errorDiv);
+            }
+        });
+    </script>
+    
+    <!-- App Scripts -->
+    <script defer src="js/auth.js"></script>
+    <script defer src="js/script.js"></script>
+    <script defer src="js/employee.js"></script>
+    <script defer src="js/manager.js"></script>
+    <script defer src="js/admin.js"></script>
+</body>
+</html>
