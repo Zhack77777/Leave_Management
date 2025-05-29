@@ -380,29 +380,117 @@ function renderFilteredUsers(users) {
     
     users.forEach(userData => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${userData.name || '-'}</td>
-            <td>${userData.employeeId || '-'}</td>
-            <td>${userData.email || '-'}</td>
-            <td>${userData.department || '-'}</td>
-            <td>${userData.role || '-'}</td>
-            <td>${userData.manager || '-'}</td>
-            <td>
-                <button class="btn btn-sm btn-primary me-1" onclick="editUser('${userData.id}')">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteUser('${userData.id}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
+        row.innerHTML = renderUserRow(userData, userData.id);
         tableBody.appendChild(row);
     });
 }
 
-function editUser(userId) {
-    // Implementation for editing user
-    alert('Edit user with ID: ' + userId);
+function renderUserRow(user, key) {
+    return `
+        <tr>
+            <td>${user.name}</td>
+            <td>${user.employeeId}</td>
+            <td>${user.email}</td>
+            <td>${user.department || 'Not assigned'}</td>
+            <td>${user.role}</td>
+            <td>${user.manager || 'Not assigned'}</td>
+            <td>
+                <button class="btn btn-sm btn-primary me-2" onclick="editUser('${key}')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteUser('${key}')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </td>
+        </tr>
+    `;
+}
+
+async function editUser(userId) {
+    try {
+        const database = window.firebaseShared.getDatabase();
+        const userSnapshot = await database.ref(`users/${userId}`).once('value');
+        const userData = userSnapshot.val();
+
+        if (!userData) {
+            showNotification({
+                title: 'Error',
+                text: 'User not found',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // Populate the edit modal with user data
+        document.getElementById('editUserId').value = userId;
+        document.getElementById('editUserName').value = userData.name || '';
+        document.getElementById('editUserEmail').value = userData.email || '';
+        document.getElementById('editUserRole').value = userData.role || '';
+        document.getElementById('editUserDepartment').value = userData.department || '';
+        document.getElementById('editUserPhone').value = userData.phone || '';
+        document.getElementById('editUserLocation').value = userData.location || '';
+        document.getElementById('editUserJobTitle').value = userData.jobTitle || '';
+        document.getElementById('editUserEmployeeId').value = userData.employeeId || '';
+        document.getElementById('editUserStartDate').value = userData.startDate || '';
+        document.getElementById('editUserEmploymentType').value = userData.employmentType || '';
+        document.getElementById('editUserManager').value = userData.manager || '';
+
+        // Show the modal
+        const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        editUserModal.show();
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading user data',
+            icon: 'error'
+        });
+    }
+}
+
+async function saveUserChanges(event) {
+    event.preventDefault();
+    
+    const userId = document.getElementById('editUserId').value;
+    const database = window.firebaseShared.getDatabase();
+    
+    try {
+        const updatedUserData = {
+            name: document.getElementById('editUserName').value,
+            email: document.getElementById('editUserEmail').value,
+            role: document.getElementById('editUserRole').value,
+            department: document.getElementById('editUserDepartment').value,
+            phone: document.getElementById('editUserPhone').value,
+            location: document.getElementById('editUserLocation').value,
+            jobTitle: document.getElementById('editUserJobTitle').value,
+            employeeId: document.getElementById('editUserEmployeeId').value,
+            startDate: document.getElementById('editUserStartDate').value,
+            employmentType: document.getElementById('editUserEmploymentType').value,
+            manager: document.getElementById('editUserManager').value
+        };
+
+        await database.ref(`users/${userId}`).update(updatedUserData);
+
+        // Close modal
+        const editUserModal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+        editUserModal.hide();
+
+        // Refresh user list
+        loadUserManagement();
+
+        showNotification({
+            title: 'Success',
+            text: 'User information updated successfully',
+            icon: 'success'
+        });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error updating user information',
+            icon: 'error'
+        });
+    }
 }
 
 function deleteUser(userId) {

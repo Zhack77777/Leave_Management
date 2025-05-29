@@ -18,7 +18,7 @@
         <nav id="sidebar" class="active">
             <div class="sidebar-header">
                 <div class="sidebar-profile">
-                    <div class="sidebar-avatar">
+                    <div class="sidebar-avatar position-relative">
                         <span class="avatar-initials" id="sidebarInitials"></span>
                     </div>
                     <div class="sidebar-user-info">
@@ -38,6 +38,12 @@
                 </li>
                 
                 <!-- Employee Sections -->
+                <li class="employee-section">
+                    <a href="#attendance" data-section="attendance">
+                        <i class="fas fa-clock"></i>
+                        <span>Attendance</span>
+                    </a>
+                </li>
                 <li class="employee-section">
                     <a href="#apply-leave" data-section="apply-leave">
                         <i class="fas fa-calendar-plus"></i>
@@ -139,8 +145,17 @@
                         </div>
                         <div class="modal-body">
                             <div class="text-center mb-4">
-                                <div class="avatar-circle mb-3">
-                                    <span class="avatar-initials" id="profileInitials"></span>
+                                <div class="profile-picture-container mb-3">
+                                    <div class="avatar-circle position-relative">
+                                        <img id="profilePicture" class="w-100 h-100 rounded-circle"  >
+                                        <span class="avatar-initials" id="profileInitials"></span>
+                                        <div class="profile-picture-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center rounded-circle">
+                                            <label for="profilePictureInput" class="btn btn-sm btn-light rounded-circle upload-btn">
+                                                <i class="fas fa-camera"></i>
+                                            </label>
+                                            <input type="file" id="profilePictureInput" class="d-none" accept="image/*">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row g-4">
@@ -290,6 +305,122 @@
                         </div>
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">Create User</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" role="dialog" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm" onsubmit="saveUserChanges(event)">
+                        <input type="hidden" id="editUserId">
+                        <div class="row g-3">
+                            <!-- Personal Information -->
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Personal Information</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="editUserName" class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" id="editUserName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editUserEmail" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="editUserEmail" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editUserPhone" class="form-label">Phone</label>
+                                            <input type="tel" class="form-control" id="editUserPhone">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editUserLocation" class="form-label">Location</label>
+                                            <input type="text" class="form-control" id="editUserLocation">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Employment Details -->
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Employment Details</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="editUserEmployeeId" class="form-label">Employee ID</label>
+                                            <input type="text" class="form-control" id="editUserEmployeeId">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editUserRole" class="form-label">Role</label>
+                                            <select class="form-select" id="editUserRole" required>
+                                                <option value="employee">Employee</option>
+                                                <option value="manager">Manager</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editUserDepartment" class="form-label">Department</label>
+                                            <input type="text" class="form-control" id="editUserDepartment">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editUserJobTitle" class="form-label">Job Title</label>
+                                            <input type="text" class="form-control" id="editUserJobTitle">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Information -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Additional Information</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="editUserStartDate" class="form-label">Start Date</label>
+                                                    <input type="date" class="form-control" id="editUserStartDate">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="editUserEmploymentType" class="form-label">Employment Type</label>
+                                                    <select class="form-select" id="editUserEmploymentType">
+                                                        <option value="full-time">Full Time</option>
+                                                        <option value="part-time">Part Time</option>
+                                                        <option value="contract">Contract</option>
+                                                        <option value="intern">Intern</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12">
+                                                <div class="mb-3">
+                                                    <label for="editUserManager" class="form-label">Manager</label>
+                                                    <input type="text" class="form-control" id="editUserManager">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
                         </div>
                     </form>
                 </div>

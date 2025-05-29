@@ -37,12 +37,96 @@ if (document.readyState === 'loading') {
 // Add this after initialize function
 function initializeProfile() {
     const profileBtn = document.getElementById('profileBtn');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    
     if (profileBtn) {
         profileBtn.addEventListener('click', showProfile);
     }
+    
+    if (profilePictureInput) {
+        profilePictureInput.addEventListener('change', handleProfilePictureUpload);
+    }
 }
 
-// Add this function to show profile
+// Add this function to handle profile picture upload
+async function handleProfilePictureUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+        showNotification({
+            title: 'Error',
+            text: 'Please select an image file',
+            icon: 'error'
+        });
+        return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification({
+            title: 'Error',
+            text: 'Image size should be less than 5MB',
+            icon: 'error'
+        });
+        return;
+    }
+
+    try {
+        const auth = window.firebaseShared.getAuth();
+        const database = window.firebaseShared.getDatabase();
+        const user = auth.currentUser;
+        
+        if (!user) return;
+
+        // Convert image to base64
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Image = e.target.result;
+            
+            // Update profile picture in database
+            await database.ref(`users/${user.uid}/profilePicture`).set(base64Image);
+            
+            // Update UI in profile modal
+            document.getElementById('profilePicture').src = base64Image;
+            document.getElementById('profileInitials').style.display = 'none';
+
+            // Update sidebar profile
+            const sidebarAvatar = document.createElement('img');
+            sidebarAvatar.src = base64Image;
+            sidebarAvatar.className = 'w-100 h-100 rounded-circle';
+            
+            const sidebarInitials = document.getElementById('sidebarInitials');
+            const sidebarAvatarContainer = sidebarInitials.parentElement;
+            
+            // Replace initials with image in sidebar
+            sidebarInitials.style.display = 'none';
+            if (!sidebarAvatarContainer.querySelector('img')) {
+                sidebarAvatarContainer.insertBefore(sidebarAvatar, sidebarInitials);
+            } else {
+                sidebarAvatarContainer.querySelector('img').src = base64Image;
+            }
+            
+            showNotification({
+                title: 'Success',
+                text: 'Profile picture updated successfully',
+                icon: 'success'
+            });
+        };
+        reader.readAsDataURL(file);
+
+    } catch (error) {
+        console.error('Error uploading profile picture:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error uploading profile picture',
+            icon: 'error'
+        });
+    }
+}
+
+// Update showProfile function to handle profile picture
 async function showProfile() {
     const auth = window.firebaseShared.getAuth();
     const database = window.firebaseShared.getDatabase();
@@ -60,14 +144,25 @@ async function showProfile() {
             return;
         }
 
-        // Set user initials
-        const initials = userData.name
-            .split(' ')
-            .map(word => word[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 2);
-        document.getElementById('profileInitials').textContent = initials;
+        // Set profile picture or initials
+        const profilePicture = document.getElementById('profilePicture');
+        const profileInitials = document.getElementById('profileInitials');
+        
+        if (userData.profilePicture) {
+            profilePicture.src = userData.profilePicture;
+            profileInitials.style.display = 'none';
+        } else {
+            profilePicture.src = 'images/default-avatar.png';
+            // Set user initials
+            const initials = userData.name
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+            profileInitials.textContent = initials;
+            profileInitials.style.display = 'flex';
+        }
 
         // Set personal information
         document.getElementById('profileFullName').textContent = userData.name || 'Not specified';
@@ -135,6 +230,53 @@ async function showProfile() {
             icon: 'error'
         });
     }
+}
+
+// Update the updateSidebarProfile function
+function updateSidebarProfile(userData) {
+    if (!userData) return;
+
+    // Set initials
+    const initials = userData.name
+        .split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+    
+    const sidebarInitials = document.getElementById('sidebarInitials');
+    const sidebarUserName = document.getElementById('sidebarUserName');
+    const sidebarUserRole = document.getElementById('sidebarUserRole');
+    const sidebarUserDepartment = document.getElementById('sidebarUserDepartment');
+
+    // Handle profile picture in sidebar
+    if (userData.profilePicture) {
+        const sidebarAvatar = document.createElement('img');
+        sidebarAvatar.src = userData.profilePicture;
+        sidebarAvatar.className = 'w-100 h-100 rounded-circle';
+        
+        const sidebarAvatarContainer = sidebarInitials.parentElement;
+        sidebarInitials.style.display = 'none';
+        
+        if (!sidebarAvatarContainer.querySelector('img')) {
+            sidebarAvatarContainer.insertBefore(sidebarAvatar, sidebarInitials);
+        } else {
+            sidebarAvatarContainer.querySelector('img').src = userData.profilePicture;
+        }
+    } else {
+        if (sidebarInitials) {
+            sidebarInitials.textContent = initials;
+            sidebarInitials.style.display = 'flex';
+            const existingImg = sidebarInitials.parentElement.querySelector('img');
+            if (existingImg) {
+                existingImg.remove();
+            }
+        }
+    }
+
+    if (sidebarUserName) sidebarUserName.textContent = userData.name;
+    if (sidebarUserRole) sidebarUserRole.textContent = userData.role;
+    if (sidebarUserDepartment) sidebarUserDepartment.textContent = userData.department || 'No Department';
 }
 
 // Dashboard initialization - will be called by auth.js after successful login and user data load
@@ -351,6 +493,9 @@ function loadDashboard() {
         .then(snapshot => {
             const userData = snapshot.val();
             if (!userData) return;
+            
+            // Update sidebar profile
+            updateSidebarProfile(userData);
             
             const dashboardContent = document.getElementById('dashboardContent');
             if (!dashboardContent) return;
