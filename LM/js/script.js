@@ -34,6 +34,109 @@ if (document.readyState === 'loading') {
     initialize();
 }
 
+// Add this after initialize function
+function initializeProfile() {
+    const profileBtn = document.getElementById('profileBtn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', showProfile);
+    }
+}
+
+// Add this function to show profile
+async function showProfile() {
+    const auth = window.firebaseShared.getAuth();
+    const database = window.firebaseShared.getDatabase();
+    const user = auth.currentUser;
+    
+    if (!user) return;
+
+    try {
+        // Fetch user data
+        const userSnapshot = await database.ref(`users/${user.uid}`).once('value');
+        const userData = userSnapshot.val();
+
+        if (!userData) {
+            console.error('No user data found');
+            return;
+        }
+
+        // Set user initials
+        const initials = userData.name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+        document.getElementById('profileInitials').textContent = initials;
+
+        // Set personal information
+        document.getElementById('profileFullName').textContent = userData.name || 'Not specified';
+        document.getElementById('profileEmail').textContent = userData.email || 'Not specified';
+        document.getElementById('profilePhone').textContent = userData.phone || 'Not specified';
+        document.getElementById('profileLocation').textContent = userData.location || 'Not specified';
+
+        // Set employment details
+        document.getElementById('profileEmployeeId').textContent = userData.employeeId || 'Not specified';
+        document.getElementById('profileJobTitle').textContent = userData.jobTitle || 'Not specified';
+        document.getElementById('profileDepartment').textContent = userData.department || 'Not specified';
+        document.getElementById('profileManager').textContent = userData.manager || 'Not specified';
+        document.getElementById('profileStartDate').textContent = userData.startDate || 'Not specified';
+        document.getElementById('profileEmploymentType').textContent = userData.employmentType || 'Not specified';
+
+        // Fetch and display leave balance
+        const currentYear = new Date().getFullYear();
+        const leaveBalanceSnapshot = await database.ref('leave_balances')
+            .orderByChild('userId')
+            .equalTo(user.uid)
+            .once('value');
+        
+        const leaveBalanceTable = document.getElementById('profileLeaveBalance');
+        leaveBalanceTable.innerHTML = '';
+
+        if (leaveBalanceSnapshot.exists()) {
+            const leaveTypes = {};
+            
+            // First, get all leave types
+            const leaveTypesSnapshot = await database.ref('leave_types').once('value');
+            leaveTypesSnapshot.forEach(type => {
+                leaveTypes[type.key] = type.val().name;
+            });
+
+            leaveBalanceSnapshot.forEach(balance => {
+                const balanceData = balance.val();
+                if (balanceData.year === currentYear) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${leaveTypes[balanceData.leaveTypeId] || 'Unknown'}</td>
+                        <td>${balanceData.totalDays}</td>
+                        <td>${balanceData.usedDays || 0}</td>
+                        <td>${balanceData.remainingDays}</td>
+                    `;
+                    leaveBalanceTable.appendChild(row);
+                }
+            });
+        } else {
+            leaveBalanceTable.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center">No leave balance found</td>
+                </tr>
+            `;
+        }
+
+        // Show the modal
+        const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+        profileModal.show();
+
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading profile information',
+            icon: 'error'
+        });
+    }
+}
+
 // Dashboard initialization - will be called by auth.js after successful login and user data load
 function initDashboard() {
     console.log("Initializing dashboard...");
@@ -43,6 +146,9 @@ function initDashboard() {
         console.error("Database not initialized");
         return;
     }
+    
+    // Initialize profile functionality
+    initializeProfile();
     
     // Sidebar toggle - using vanilla JS instead of jQuery
     const sidebarCollapse = document.getElementById('sidebarCollapse');
@@ -120,6 +226,9 @@ function loadSection() {
                 break;
             case 'user-management':
                 loadUserManagement();
+                break;
+            case 'employee-directory':
+                loadEmployeeDirectory();
                 break;
             case 'leave-types':
                 loadLeaveTypes();

@@ -57,25 +57,48 @@ function loadUserManagement() {
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h4>User Management</h4>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                            Add New User
-                        </button>
+                        <div>
+                            <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                                <i class="fas fa-user-plus"></i> Add Employee
+                            </button>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                <i class="fas fa-user-cog"></i> Add Admin/Manager
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
+                        <!-- Add Filter Section -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center">
+                                    <label class="me-2 text-nowrap">Filter by Department:</label>
+                                    <select class="form-select" id="departmentFilter">
+                                        <option value="all">All Departments</option>
+                                        <option value="Department A">Department A</option>
+                                        <option value="Department B">Department B</option>
+                                        <option value="Department C">Department C</option>
+                                        <option value="Department D">Department D</option>
+                                        <option value="Department E">Department E</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
                                         <th>Name</th>
+                                        <th>Employee ID</th>
                                         <th>Email</th>
+                                        <th>Department</th>
                                         <th>Role</th>
-                                        <th>Joined</th>
+                                        <th>Manager</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="usersTable">
                                     <tr>
-                                        <td colspan="5" class="text-center">Loading...</td>
+                                        <td colspan="7" class="text-center">Loading...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -85,12 +108,108 @@ function loadUserManagement() {
             </div>
         </div>
         
-        <!-- Add User Modal -->
+        <!-- Add Employee Modal -->
+        <div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Employee</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addEmployeeForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeFullName" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="employeeFullName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeId" class="form-label">Employee ID</label>
+                                    <input type="text" class="form-control" id="employeeId" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeEmail" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="employeeEmail" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeePhone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="employeePhone" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeJobTitle" class="form-label">Job Title / Position</label>
+                                    <input type="text" class="form-control" id="employeeJobTitle" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeDepartment" class="form-label">Department / Team</label>
+                                    <select class="form-select" id="employeeDepartment" required>
+                                        <option value="">Select department</option>
+                                        <option value="Department A">Department A</option>
+                                        <option value="Department B">Department B</option>
+                                        <option value="Department C">Department C</option>
+                                        <option value="Department D">Department D</option>
+                                        <option value="Department E">Department E</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeManager" class="form-label">Manager / Supervisor Name</label>
+                                    <input type="text" class="form-control" id="employeeManager" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeStartDate" class="form-label">Date of Hire</label>
+                                    <input type="date" class="form-control" id="employeeStartDate" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeType" class="form-label">Employment Type</label>
+                                    <select class="form-select" id="employeeType" required>
+                                        <option value="">Select type</option>
+                                        <option value="Full-time">Full-time</option>
+                                        <option value="Part-time">Part-time</option>
+                                        <option value="Contractor">Contractor</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeLocation" class="form-label">Location</label>
+                                    <select class="form-select" id="employeeLocation" required>
+                                        <option value="">Select location</option>
+                                        <option value="Office">Office</option>
+                                        <option value="Remote">Remote</option>
+                                        <option value="Hybrid">Hybrid</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeeUsername" class="form-label">Username/Login ID</label>
+                                    <input type="text" class="form-control" id="employeeUsername" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="employeePassword" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="employeePassword" required>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success">Create Employee</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Admin/Manager Modal -->
         <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Add New User</h5>
+                        <h5 class="modal-title">Add Admin/Manager</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -110,13 +229,13 @@ function loadUserManagement() {
                             <div class="mb-3">
                                 <label for="newUserRole" class="form-label">Role</label>
                                 <select class="form-select" id="newUserRole" required>
-                                    <option value="employee">Employee</option>
+                                    <option value="">Select role</option>
                                     <option value="manager">Manager</option>
                                     <option value="admin">Admin</option>
                                 </select>
                             </div>
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary">Create User</button>
+                                <button type="submit" class="btn btn-primary">Create Admin/Manager</button>
                             </div>
                         </form>
                     </div>
@@ -127,49 +246,87 @@ function loadUserManagement() {
     
     document.getElementById('dashboardContent').innerHTML = html;
     
-    // Load users
+    // Load users and set up filter functionality
+    let allUsers = [];
+    
     database.ref('users').once('value').then(snapshot => {
         const tableBody = document.getElementById('usersTable');
-        tableBody.innerHTML = '';
         
         if (!snapshot.exists()) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No users found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
             return;
         }
         
+        // Store all users in the array
         snapshot.forEach(user => {
             const userData = user.val();
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${userData.name}</td>
-                <td>${userData.email}</td>
-                <td>${userData.role}</td>
-                <td>${formatDate(userData.createdAt)}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning edit-btn" data-id="${user.key}">Edit</button>
-                    <button class="btn btn-sm btn-danger delete-btn" data-id="${user.key}">Delete</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
+            userData.id = user.key;
+            allUsers.push(userData);
         });
         
-        // Add event listeners to buttons
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const userId = this.getAttribute('data-id');
-                editUser(userId);
-            });
-        });
+        // Initial render of all users
+        renderFilteredUsers(allUsers);
         
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const userId = this.getAttribute('data-id');
-                deleteUser(userId);
-            });
+        // Set up department filter event listener
+        document.getElementById('departmentFilter').addEventListener('change', (e) => {
+            const selectedDepartment = e.target.value;
+            const filteredUsers = selectedDepartment === 'all' 
+                ? allUsers 
+                : allUsers.filter(user => user.department === selectedDepartment);
+            renderFilteredUsers(filteredUsers);
         });
     });
     
-    // Add user form submission
+    // Add employee form submission
+    document.getElementById('addEmployeeForm')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const employeeData = {
+            name: document.getElementById('employeeFullName').value,
+            employeeId: document.getElementById('employeeId').value,
+            email: document.getElementById('employeeEmail').value,
+            phone: document.getElementById('employeePhone').value,
+            jobTitle: document.getElementById('employeeJobTitle').value,
+            department: document.getElementById('employeeDepartment').value,
+            manager: document.getElementById('employeeManager').value,
+            startDate: document.getElementById('employeeStartDate').value,
+            employmentType: document.getElementById('employeeType').value,
+            location: document.getElementById('employeeLocation').value,
+            username: document.getElementById('employeeUsername').value,
+            role: 'employee',
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        };
+        
+        const password = document.getElementById('employeePassword').value;
+        
+        // Create user in Firebase Auth
+        auth.createUserWithEmailAndPassword(employeeData.email, password)
+            .then((userCredential) => {
+                // Create user in database
+                return database.ref('users/' + userCredential.user.uid).set(employeeData);
+            })
+            .then(() => {
+                showNotification({
+                    title: 'Success',
+                    text: 'Employee created successfully',
+                    icon: 'success',
+                    toast: true
+                });
+                document.getElementById('addEmployeeForm').reset();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
+                modal.hide();
+                loadUserManagement();
+            })
+            .catch(error => {
+                showNotification({
+                    title: 'Error',
+                    text: 'Error creating employee: ' + error.message,
+                    icon: 'error'
+                });
+            });
+    });
+    
+    // Add admin/manager form submission
     document.getElementById('addUserForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -197,7 +354,8 @@ function loadUserManagement() {
                     toast: true
                 });
                 document.getElementById('addUserForm').reset();
-                $('#addUserModal').modal('hide');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                modal.hide();
                 loadUserManagement();
             })
             .catch(error => {
@@ -207,6 +365,38 @@ function loadUserManagement() {
                     icon: 'error'
                 });
             });
+    });
+}
+
+// Helper function to render filtered users
+function renderFilteredUsers(users) {
+    const tableBody = document.getElementById('usersTable');
+    tableBody.innerHTML = '';
+    
+    if (users.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
+        return;
+    }
+    
+    users.forEach(userData => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${userData.name || '-'}</td>
+            <td>${userData.employeeId || '-'}</td>
+            <td>${userData.email || '-'}</td>
+            <td>${userData.department || '-'}</td>
+            <td>${userData.role || '-'}</td>
+            <td>${userData.manager || '-'}</td>
+            <td>
+                <button class="btn btn-sm btn-primary me-1" onclick="editUser('${userData.id}')">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteUser('${userData.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tableBody.appendChild(row);
     });
 }
 
@@ -1101,3 +1291,358 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeModal('addLeaveTypeModal', 'addLeaveTypeForm', 'leaveTypeName');
     initializeModal('addHolidayModal', 'addHolidayForm', 'holidayName');
 });
+
+// Add this new function for employee management
+function loadEmployeeDirectory() {
+    const html = `
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>Employee Directory</h4>
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="d-flex align-items-center">
+                                <label class="me-2 text-nowrap">Department:</label>
+                                <select class="form-select form-select-sm" id="employeeDeptFilter" style="width: 200px;">
+                                    <option value="all">All Departments</option>
+                                    <option value="Department A">Department A</option>
+                                    <option value="Department B">Department B</option>
+                                    <option value="Department C">Department C</option>
+                                    <option value="Department D">Department D</option>
+                                    <option value="Department E">Department E</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="employeeGrid">
+                            <!-- Employee cards will be dynamically added here -->
+                            <div class="col-12 text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Details Modal -->
+        <div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <div class="avatar-circle mb-3">
+                                <span class="avatar-initials" id="employeeInitials"></span>
+                            </div>
+                            <h4 class="mb-1" id="employeeFullName"></h4>
+                            <p class="text-muted" id="employeeJobTitle"></p>
+                        </div>
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="info-card">
+                                    <h5 class="info-card-title">Contact Information</h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="fas fa-envelope text-primary me-2"></i>
+                                            <span id="employeeEmail"></span>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-phone text-primary me-2"></i>
+                                            <span id="employeePhone"></span>
+                                        </li>
+                                        <li>
+                                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                            <span id="employeeLocation"></span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-card">
+                                    <h5 class="info-card-title">Employment Details</h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="fas fa-id-badge text-primary me-2"></i>
+                                            Employee ID: <span id="employeeIdDisplay"></span>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-users text-primary me-2"></i>
+                                            Department: <span id="employeeDepartment"></span>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-user-tie text-primary me-2"></i>
+                                            Manager: <span id="employeeManager"></span>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-calendar-alt text-primary me-2"></i>
+                                            Start Date: <span id="employeeStartDate"></span>
+                                        </li>
+                                        <li>
+                                            <i class="fas fa-briefcase text-primary me-2"></i>
+                                            Employment Type: <span id="employeeType"></span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="info-card">
+                                    <h5 class="info-card-title">Leave Balance</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Leave Type</th>
+                                                    <th>Total Days</th>
+                                                    <th>Used</th>
+                                                    <th>Remaining</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="employeeLeaveBalance">
+                                                <!-- Leave balance will be dynamically added here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .employee-card {
+                transition: transform 0.2s, box-shadow 0.2s;
+                cursor: pointer;
+            }
+            .employee-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+            .avatar-circle {
+                width: 100px;
+                height: 100px;
+                background-color: #4f46e5;
+                border-radius: 50%;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto;
+            }
+            .avatar-initials {
+                color: white;
+                font-size: 2.5rem;
+                font-weight: bold;
+            }
+            .info-card {
+                background-color: #f8fafc;
+                border-radius: 10px;
+                padding: 1.5rem;
+                height: 100%;
+            }
+            .info-card-title {
+                color: #4f46e5;
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+                font-weight: 600;
+            }
+            .employee-mini-avatar {
+                width: 48px;
+                height: 48px;
+                background-color: #4f46e5;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 1.2rem;
+                margin-right: 1rem;
+            }
+        </style>
+    `;
+
+    document.getElementById('dashboardContent').innerHTML = html;
+
+    // Load employees
+    let allEmployees = [];
+    
+    database.ref('users').once('value').then(async snapshot => {
+        const employeeGrid = document.getElementById('employeeGrid');
+        employeeGrid.innerHTML = ''; // Clear loading spinner
+        
+        if (!snapshot.exists()) {
+            employeeGrid.innerHTML = '<div class="col-12 text-center">No employees found</div>';
+            return;
+        }
+
+        // Store all employees and sort by name
+        snapshot.forEach(user => {
+            const userData = user.val();
+            if (userData.role === 'employee') {
+                userData.id = user.key;
+                allEmployees.push(userData);
+            }
+        });
+
+        allEmployees.sort((a, b) => a.name.localeCompare(b.name));
+        
+        // Initial render of all employees
+        renderEmployeeCards(allEmployees);
+
+        // Set up department filter event listener
+        document.getElementById('employeeDeptFilter').addEventListener('change', (e) => {
+            const selectedDepartment = e.target.value;
+            const filteredEmployees = selectedDepartment === 'all' 
+                ? allEmployees 
+                : allEmployees.filter(emp => emp.department === selectedDepartment);
+            renderEmployeeCards(filteredEmployees);
+        });
+    });
+}
+
+// Helper function to render employee cards
+function renderEmployeeCards(employees) {
+    const employeeGrid = document.getElementById('employeeGrid');
+    employeeGrid.innerHTML = '';
+
+    if (employees.length === 0) {
+        employeeGrid.innerHTML = '<div class="col-12 text-center">No employees found</div>';
+        return;
+    }
+
+    employees.forEach(employee => {
+        const initials = getInitials(employee.name);
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4 mb-4';
+        col.innerHTML = `
+            <div class="card employee-card h-100" onclick="showEmployeeDetails('${employee.id}')">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="employee-mini-avatar">
+                            ${initials}
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">${employee.name}</h5>
+                            <small class="text-muted">${employee.jobTitle || 'No title specified'}</small>
+                        </div>
+                    </div>
+                    <div class="card-text">
+                        <p class="mb-1">
+                            <i class="fas fa-users text-primary me-2"></i>
+                            ${employee.department || 'No department'}
+                        </p>
+                        <p class="mb-1">
+                            <i class="fas fa-envelope text-primary me-2"></i>
+                            ${employee.email}
+                        </p>
+                        <p class="mb-0">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            ${employee.phone || 'No phone number'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+        employeeGrid.appendChild(col);
+    });
+}
+
+// Helper function to get initials from name
+function getInitials(name) {
+    return name
+        .split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+}
+
+// Function to show employee details
+async function showEmployeeDetails(employeeId) {
+    try {
+        // Fetch employee data
+        const employeeSnapshot = await database.ref(`users/${employeeId}`).once('value');
+        const employee = employeeSnapshot.val();
+
+        if (!employee) {
+            showNotification({
+                title: 'Error',
+                text: 'Employee not found',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // Update modal with employee details
+        document.getElementById('employeeInitials').textContent = getInitials(employee.name);
+        document.getElementById('employeeFullName').textContent = employee.name;
+        document.getElementById('employeeJobTitle').textContent = employee.jobTitle || 'No title specified';
+        document.getElementById('employeeEmail').textContent = employee.email;
+        document.getElementById('employeePhone').textContent = employee.phone || 'No phone number';
+        document.getElementById('employeeLocation').textContent = employee.location || 'Not specified';
+        document.getElementById('employeeIdDisplay').textContent = employee.employeeId || 'Not assigned';
+        document.getElementById('employeeDepartment').textContent = employee.department || 'Not assigned';
+        document.getElementById('employeeManager').textContent = employee.manager || 'Not assigned';
+        document.getElementById('employeeStartDate').textContent = employee.startDate || 'Not specified';
+        document.getElementById('employeeType').textContent = employee.employmentType || 'Not specified';
+
+        // Fetch and display leave balance
+        const leaveBalanceSnapshot = await database.ref('leave_balances')
+            .orderByChild('userId')
+            .equalTo(employeeId)
+            .once('value');
+        
+        const leaveBalanceTable = document.getElementById('employeeLeaveBalance');
+        leaveBalanceTable.innerHTML = '';
+
+        if (leaveBalanceSnapshot.exists()) {
+            const leaveTypes = {};
+            const currentYear = new Date().getFullYear();
+
+            // First, get all leave types
+            const leaveTypesSnapshot = await database.ref('leave_types').once('value');
+            leaveTypesSnapshot.forEach(type => {
+                leaveTypes[type.key] = type.val().name;
+            });
+
+            leaveBalanceSnapshot.forEach(balance => {
+                const balanceData = balance.val();
+                if (balanceData.year === currentYear) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${leaveTypes[balanceData.leaveTypeId] || 'Unknown'}</td>
+                        <td>${balanceData.totalDays}</td>
+                        <td>${balanceData.usedDays || 0}</td>
+                        <td>${balanceData.remainingDays}</td>
+                    `;
+                    leaveBalanceTable.appendChild(row);
+                }
+            });
+        } else {
+            leaveBalanceTable.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center">No leave balance found</td>
+                </tr>
+            `;
+        }
+
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('employeeDetailsModal'));
+        modal.show();
+
+    } catch (error) {
+        console.error('Error showing employee details:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading employee details',
+            icon: 'error'
+        });
+    }
+}
