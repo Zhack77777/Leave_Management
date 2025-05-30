@@ -29,7 +29,7 @@ waitForFirebase().then(instances => {
     console.error('Error initializing Firebase in admin.js:', error);
 });
 
-// Add this helper function at the top of the file
+// Helper function for notifications
 function showNotification(options) {
     return Swal.fire({
         title: options.title,
@@ -47,6 +47,60 @@ function showNotification(options) {
             popup: 'animated fadeInDown'
         }
     });
+}
+
+// Validate user data against Firebase rules
+function validateUserData(data) {
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const validRoles = ['employee', 'manager', 'admin'];
+    const validEmploymentTypes = ['Full-time', 'Part-time', 'Contractor', null];
+    const validLocations = ['Office', 'Remote', 'Hybrid', null];
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+    // Required fields
+    if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
+        return 'Name is required and must be a non-empty string';
+    }
+    if (!data.email || !emailRegex.test(data.email)) {
+        return 'Valid email is required';
+    }
+    if (!data.role || !validRoles.includes(data.role)) {
+        return 'Role must be employee, manager, or admin';
+    }
+
+    // Optional fields
+    if (data.department && typeof data.department !== 'string') {
+        return 'Department must be a string';
+    }
+    if (data.employeeId && typeof data.employeeId !== 'string') {
+        return 'Employee ID must be a string';
+    }
+    if (data.phone && typeof data.phone !== 'string') {
+        return 'Phone must be a string';
+    }
+    if (data.jobTitle && typeof data.jobTitle !== 'string') {
+        return 'Job title must be a string';
+    }
+    if (data.manager && typeof data.manager !== 'string') {
+        return 'Manager must be a string';
+    }
+    if (data.startDate && !dateRegex.test(data.startDate)) {
+        return 'Start date must be in YYYY-MM-DD format';
+    }
+    if (data.employmentType && !validEmploymentTypes.includes(data.employmentType)) {
+        return 'Employment type must be Full-time, Part-time, or Contractor';
+    }
+    if (data.location && !validLocations.includes(data.location)) {
+        return 'Location must be Office, Remote, or Hybrid';
+    }
+    if (data.username && typeof data.username !== 'string') {
+        return 'Username must be a string';
+    }
+    if (data.createdAt && typeof data.createdAt !== 'number') {
+        return 'Created timestamp must be a number';
+    }
+
+    return null; // Data is valid
 }
 
 // Admin-specific functions
@@ -67,7 +121,6 @@ function loadUserManagement() {
                         </div>
                     </div>
                     <div class="card-body">
-                        <!-- Add Filter Section -->
                         <div class="row mb-4">
                             <div class="col-md-4">
                                 <div class="d-flex align-items-center">
@@ -107,7 +160,7 @@ function loadUserManagement() {
                 </div>
             </div>
         </div>
-        
+
         <!-- Add Employee Modal -->
         <div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
@@ -203,7 +256,7 @@ function loadUserManagement() {
                 </div>
             </div>
         </div>
-        
+
         <!-- Add Admin/Manager Modal -->
         <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
@@ -242,45 +295,146 @@ function loadUserManagement() {
                 </div>
             </div>
         </div>
+
+        <!-- Edit User Modal -->
+        <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editUserForm">
+                            <input type="hidden" id="editUserId">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserName" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="editUserName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserEmail" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="editUserEmail" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserRole" class="form-label">Role</label>
+                                    <select class="form-select" id="editUserRole" required>
+                                        <option value="employee">Employee</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserDepartment" class="form-label">Department</label>
+                                    <select class="form-select" id="editUserDepartment">
+                                        <option value="">Select department</option>
+                                        <option value="Department A">Department A</option>
+                                        <option value="Department B">Department B</option>
+                                        <option value="Department C">Department C</option>
+                                        <option value="Department D">Department D</option>
+                                        <option value="Department E">Department E</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserPhone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="editUserPhone">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserLocation" class="form-label">Location</label>
+                                    <select class="form-select" id="editUserLocation">
+                                        <option value="">Select location</option>
+                                        <option value="Office">Office</option>
+                                        <option value="Remote">Remote</option>
+                                        <option value="Hybrid">Hybrid</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserJobTitle" class="form-label">Job Title</label>
+                                    <input type="text" class="form-control" id="editUserJobTitle">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserEmployeeId" class="form-label">Employee ID</label>
+                                    <input type="text" class="form-control" id="editUserEmployeeId">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserStartDate" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="editUserStartDate">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserEmploymentType" class="form-label">Employment Type</label>
+                                    <select class="form-select" id="editUserEmploymentType">
+                                        <option value="">Select type</option>
+                                        <option value="Full-time">Full-time</option>
+                                        <option value="Part-time">Part-time</option>
+                                        <option value="Contractor">Contractor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editUserManager" class="form-label">Manager</label>
+                                    <input type="text" class="form-control" id="editUserManager">
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
-    
+
     document.getElementById('dashboardContent').innerHTML = html;
-    
+
     // Load users and set up filter functionality
     let allUsers = [];
-    
+
     database.ref('users').once('value').then(snapshot => {
         const tableBody = document.getElementById('usersTable');
-        
+
         if (!snapshot.exists()) {
             tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
             return;
         }
-        
-        // Store all users in the array
+
         snapshot.forEach(user => {
             const userData = user.val();
             userData.id = user.key;
             allUsers.push(userData);
         });
-        
-        // Initial render of all users
+
         renderFilteredUsers(allUsers);
-        
-        // Set up department filter event listener
+
         document.getElementById('departmentFilter').addEventListener('change', (e) => {
             const selectedDepartment = e.target.value;
-            const filteredUsers = selectedDepartment === 'all' 
-                ? allUsers 
+            const filteredUsers = selectedDepartment === 'all'
+                ? allUsers
                 : allUsers.filter(user => user.department === selectedDepartment);
             renderFilteredUsers(filteredUsers);
         });
+    }).catch(error => {
+        console.error('Error loading users:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading users: ' + error.message,
+            icon: 'error'
+        });
     });
-    
+
     // Add employee form submission
-    document.getElementById('addEmployeeForm')?.addEventListener('submit', (e) => {
+    document.getElementById('addEmployeeForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const employeeData = {
             name: document.getElementById('employeeFullName').value,
             employeeId: document.getElementById('employeeId').value,
@@ -296,88 +450,102 @@ function loadUserManagement() {
             role: 'employee',
             createdAt: firebase.database.ServerValue.TIMESTAMP
         };
-        
+
         const password = document.getElementById('employeePassword').value;
-        
-        // Create user in Firebase Auth
-        auth.createUserWithEmailAndPassword(employeeData.email, password)
-            .then((userCredential) => {
-                // Create user in database
-                return database.ref('users/' + userCredential.user.uid).set(employeeData);
-            })
-            .then(() => {
-                showNotification({
-                    title: 'Success',
-                    text: 'Employee created successfully',
-                    icon: 'success',
-                    toast: true
-                });
-                document.getElementById('addEmployeeForm').reset();
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
-                modal.hide();
-                loadUserManagement();
-            })
-            .catch(error => {
-                showNotification({
-                    title: 'Error',
-                    text: 'Error creating employee: ' + error.message,
-                    icon: 'error'
-                });
+
+        const validationError = validateUserData(employeeData);
+        if (validationError) {
+            showNotification({
+                title: 'Error',
+                text: validationError,
+                icon: 'error'
             });
+            return;
+        }
+
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(employeeData.email, password);
+            await database.ref('users/' + userCredential.user.uid).set(employeeData);
+            showNotification({
+                title: 'Success',
+                text: 'Employee created successfully',
+                icon: 'success',
+                toast: true
+            });
+            document.getElementById('addEmployeeForm').reset();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
+            modal.hide();
+            loadUserManagement();
+        } catch (error) {
+            console.error('Error creating employee:', error);
+            showNotification({
+                title: 'Error',
+                text: 'Error creating employee: ' + error.message,
+                icon: 'error'
+            });
+        }
     });
-    
+
     // Add admin/manager form submission
-    document.getElementById('addUserForm')?.addEventListener('submit', (e) => {
+    document.getElementById('addUserForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        const name = document.getElementById('newUserName').value;
-        const email = document.getElementById('newUserEmail').value;
+
+        const userData = {
+            name: document.getElementById('newUserName').value,
+            email: document.getElementById('newUserEmail').value,
+            role: document.getElementById('newUserRole').value,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        };
+
         const password = document.getElementById('newUserPassword').value;
-        const role = document.getElementById('newUserRole').value;
-        
-        // Create user in Firebase Auth
-        auth.createUserWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                // Create user in database
-                return database.ref('users/' + userCredential.user.uid).set({
-                    name: name,
-                    email: email,
-                    role: role,
-                    createdAt: firebase.database.ServerValue.TIMESTAMP
-                });
-            })
-            .then(() => {
-                showNotification({
-                    title: 'Success',
-                    text: 'User created successfully',
-                    icon: 'success',
-                    toast: true
-                });
-                document.getElementById('addUserForm').reset();
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-                modal.hide();
-                loadUserManagement();
-            })
-            .catch(error => {
-                showNotification({
-                    title: 'Error',
-                    text: 'Error creating user: ' + error.message,
-                    icon: 'error'
-                });
+
+        const validationError = validateUserData(userData);
+        if (validationError) {
+            showNotification({
+                title: 'Error',
+                text: validationError,
+                icon: 'error'
             });
+            return;
+        }
+
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(userData.email, password);
+            await database.ref('users/' + userCredential.user.uid).set(userData);
+            showNotification({
+                title: 'Success',
+                text: 'User created successfully',
+                icon: 'success',
+                toast: true
+            });
+            document.getElementById('addUserForm').reset();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+            modal.hide();
+            loadUserManagement();
+        } catch (error) {
+            console.error('Error creating user:', error);
+            showNotification({
+                title: 'Error',
+                text: 'Error creating user: ' + error.message,
+                icon: 'error'
+            });
+        }
     });
+
+    // Add event listener for edit user form
+    document.getElementById('editUserForm')?.addEventListener('submit', saveUserChanges);
 }
 
 // Helper function to render filtered users
 function renderFilteredUsers(users) {
     const tableBody = document.getElementById('usersTable');
     tableBody.innerHTML = '';
-    
+
     if (users.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
         return;
     }
-    
+
     users.forEach(userData => {
         const row = document.createElement('tr');
         row.innerHTML = renderUserRow(userData, userData.id);
@@ -389,7 +557,7 @@ function renderUserRow(user, key) {
     return `
         <tr>
             <td>${user.name}</td>
-            <td>${user.employeeId}</td>
+            <td>${user.employeeId || 'N/A'}</td>
             <td>${user.email}</td>
             <td>${user.department || 'Not assigned'}</td>
             <td>${user.role}</td>
@@ -435,14 +603,13 @@ async function editUser(userId) {
         document.getElementById('editUserEmploymentType').value = userData.employmentType || '';
         document.getElementById('editUserManager').value = userData.manager || '';
 
-        // Show the modal
         const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
         editUserModal.show();
     } catch (error) {
         console.error('Error loading user data:', error);
         showNotification({
             title: 'Error',
-            text: 'Error loading user data',
+            text: 'Error loading user data: ' + error.message,
             icon: 'error'
         });
     }
@@ -450,50 +617,86 @@ async function editUser(userId) {
 
 async function saveUserChanges(event) {
     event.preventDefault();
-    
+
     const userId = document.getElementById('editUserId').value;
     const database = window.firebaseShared.getDatabase();
-    
+
+    // Check authentication
+    const user = auth.currentUser;
+    if (!user) {
+        showNotification({
+            title: 'Error',
+            text: 'No authenticated user found',
+            icon: 'error'
+        });
+        return;
+    }
+
+    // Verify admin role
+    const userSnapshot = await database.ref(`users/${user.uid}/role`).once('value');
+    if (userSnapshot.val() !== 'admin') {
+        showNotification({
+            title: 'Error',
+            text: 'Only admins can update user information',
+            icon: 'error'
+        });
+        return;
+    }
+
+    const updatedUserData = {
+        name: document.getElementById('editUserName').value || null,
+        email: document.getElementById('editUserEmail').value || null,
+        role: document.getElementById('editUserRole').value || null,
+        department: document.getElementById('editUserDepartment').value || null,
+        phone: document.getElementById('editUserPhone').value || null,
+        location: document.getElementById('editUserLocation').value || null,
+        jobTitle: document.getElementById('editUserJobTitle').value || null,
+        employeeId: document.getElementById('editUserEmployeeId').value || null,
+        startDate: document.getElementById('editUserStartDate').value || null,
+        employmentType: document.getElementById('editUserEmploymentType').value || null,
+        manager: document.getElementById('editUserManager').value || null
+    };
+
+    // Remove null or empty optional fields to avoid validation issues
+    Object.keys(updatedUserData).forEach(key => {
+        if (updatedUserData[key] === null || updatedUserData[key] === '') {
+            delete updatedUserData[key];
+        }
+    });
+
+    const validationError = validateUserData(updatedUserData);
+    if (validationError) {
+        showNotification({
+            title: 'Error',
+            text: validationError,
+            icon: 'error'
+        });
+        return;
+    }
+
     try {
-        const updatedUserData = {
-            name: document.getElementById('editUserName').value,
-            email: document.getElementById('editUserEmail').value,
-            role: document.getElementById('editUserRole').value,
-            department: document.getElementById('editUserDepartment').value,
-            phone: document.getElementById('editUserPhone').value,
-            location: document.getElementById('editUserLocation').value,
-            jobTitle: document.getElementById('editUserJobTitle').value,
-            employeeId: document.getElementById('editUserEmployeeId').value,
-            startDate: document.getElementById('editUserStartDate').value,
-            employmentType: document.getElementById('editUserEmploymentType').value,
-            manager: document.getElementById('editUserManager').value
-        };
-
+        console.log('Updating user with data:', updatedUserData); // Debug log
         await database.ref(`users/${userId}`).update(updatedUserData);
-
-        // Close modal
         const editUserModal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
         editUserModal.hide();
-
-        // Refresh user list
         loadUserManagement();
-
         showNotification({
             title: 'Success',
             text: 'User information updated successfully',
-            icon: 'success'
+            icon: 'success',
+            toast: true
         });
     } catch (error) {
         console.error('Error updating user:', error);
         showNotification({
             title: 'Error',
-            text: 'Error updating user information',
+            text: `Error updating user: ${error.message}`,
             icon: 'error'
         });
     }
 }
 
-function deleteUser(userId) {
+async function deleteUser(userId) {
     showNotification({
         title: 'Are you sure?',
         text: 'This action cannot be undone!',
@@ -502,25 +705,25 @@ function deleteUser(userId) {
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'No, cancel',
         showConfirmButton: true
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            database.ref('users/' + userId).remove()
-                .then(() => {
-                    showNotification({
-                        title: 'Deleted!',
-                        text: 'User has been deleted successfully',
-                        icon: 'success',
-                        toast: true
-                    });
-                    loadUserManagement();
-                })
-                .catch(error => {
-                    showNotification({
-                        title: 'Error',
-                        text: 'Error deleting user: ' + error.message,
-                        icon: 'error'
-                    });
+            try {
+                await database.ref('users/' + userId).remove();
+                showNotification({
+                    title: 'Deleted!',
+                    text: 'User has been deleted successfully',
+                    icon: 'success',
+                    toast: true
                 });
+                loadUserManagement();
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showNotification({
+                    title: 'Error',
+                    text: 'Error deleting user: ' + error.message,
+                    icon: 'error'
+                });
+            }
         }
     });
 }
@@ -557,8 +760,7 @@ function loadLeaveTypes() {
                 </div>
             </div>
         </div>
-        
-        <!-- Add Leave Type Modal -->
+
         <div class="modal fade" id="addLeaveTypeModal" tabindex="-1" role="dialog" aria-labelledby="addLeaveTypeModalLabel">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -585,42 +787,37 @@ function loadLeaveTypes() {
             </div>
         </div>
     `;
-    
+
     document.getElementById('dashboardContent').innerHTML = html;
-    
-    // Initialize modal with proper focus management
+
     const addLeaveTypeModal = document.getElementById('addLeaveTypeModal');
     const modalInstance = new bootstrap.Modal(addLeaveTypeModal);
-    
-    // Store the element that had focus before opening modal
+
     let previousActiveElement;
-    
+
     addLeaveTypeModal.addEventListener('show.bs.modal', function () {
         previousActiveElement = document.activeElement;
     });
-    
+
     addLeaveTypeModal.addEventListener('shown.bs.modal', function () {
-        // Set focus to first focusable element
         document.getElementById('leaveTypeName').focus();
     });
-    
+
     addLeaveTypeModal.addEventListener('hidden.bs.modal', function () {
-        // Return focus to the element that opened the modal
         if (previousActiveElement) {
             previousActiveElement.focus();
         }
     });
-    
-    // Load leave types
+
     database.ref('leave_types').once('value').then(snapshot => {
         const tableBody = document.getElementById('leaveTypesTable');
         tableBody.innerHTML = '';
-        
+
         if (!snapshot.exists()) {
             tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No leave types defined</td></tr>';
             return;
         }
-        
+
         snapshot.forEach(type => {
             const typeData = type.val();
             const row = document.createElement('tr');
@@ -634,34 +831,40 @@ function loadLeaveTypes() {
             `;
             tableBody.appendChild(row);
         });
-        
-        // Add event listeners to buttons
+
         document.querySelectorAll('.edit-type-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const typeId = this.getAttribute('data-id');
                 editLeaveType(typeId);
             });
         });
-        
+
         document.querySelectorAll('.delete-type-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const typeId = this.getAttribute('data-id');
                 deleteLeaveType(typeId);
             });
         });
+    }).catch(error => {
+        console.error('Error loading leave types:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading leave types: ' + error.message,
+            icon: 'error'
+        });
     });
-    
-    // Add leave type form submission
-    document.getElementById('addLeaveTypeForm')?.addEventListener('submit', (e) => {
+
+    document.getElementById('addLeaveTypeForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const name = document.getElementById('leaveTypeName').value;
         const description = document.getElementById('leaveTypeDesc').value;
-        
-        database.ref('leave_types').push().set({
-            name: name,
-            description: description
-        }).then(() => {
+
+        try {
+            await database.ref('leave_types').push().set({
+                name: name,
+                description: description
+            });
             showNotification({
                 title: 'Success',
                 text: 'Leave type added successfully',
@@ -669,20 +872,20 @@ function loadLeaveTypes() {
                 toast: true
             });
             document.getElementById('addLeaveTypeForm').reset();
-            modalInstance.hide(); // Use the modal instance to hide
+            modalInstance.hide();
             loadLeaveTypes();
-        }).catch(error => {
+        } catch (error) {
+            console.error('Error adding leave type:', error);
             showNotification({
                 title: 'Error',
                 text: 'Error adding leave type: ' + error.message,
                 icon: 'error'
             });
-        });
+        }
     });
 }
 
 function editLeaveType(typeId) {
-    // Implementation for editing leave type
     alert('Edit leave type with ID: ' + typeId);
 }
 
@@ -695,25 +898,25 @@ function deleteLeaveType(typeId) {
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'No, cancel',
         showConfirmButton: true
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            database.ref('leave_types/' + typeId).remove()
-                .then(() => {
-                    showNotification({
-                        title: 'Deleted!',
-                        text: 'Leave type has been deleted successfully',
-                        icon: 'success',
-                        toast: true
-                    });
-                    loadLeaveTypes();
-                })
-                .catch(error => {
-                    showNotification({
-                        title: 'Error',
-                        text: 'Error deleting leave type: ' + error.message,
-                        icon: 'error'
-                    });
+            try {
+                await database.ref('leave_types/' + typeId).remove();
+                showNotification({
+                    title: 'Deleted!',
+                    text: 'Leave type has been deleted successfully',
+                    icon: 'success',
+                    toast: true
                 });
+                loadLeaveTypes();
+            } catch (error) {
+                console.error('Error deleting leave type:', error);
+                showNotification({
+                    title: 'Error',
+                    text: 'Error deleting leave type: ' + error.message,
+                    icon: 'error'
+                });
+            }
         }
     });
 }
@@ -756,9 +959,9 @@ function loadAssignLeave() {
                                 <button type="submit" class="btn btn-primary">Assign Leave</button>
                             </div>
                         </form>
-                        
+
                         <hr>
-                        
+
                         <h5>Current Leave Balances</h5>
                         <div class="table-responsive">
                             <table class="table table-striped">
@@ -768,13 +971,12 @@ function loadAssignLeave() {
                                         <th>Leave Type</th>
                                         <th>Year</th>
                                         <th>Total Days</th>
-                                        <th>Used Days</th>
-                                        <th>Remaining</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="leaveBalancesTable">
                                     <tr>
-                                        <td colspan="6" class="text-center">Loading...</td>
+                                        <td colspan="5" class="text-center">Loading...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -784,237 +986,168 @@ function loadAssignLeave() {
             </div>
         </div>
     `;
-    
+
     document.getElementById('dashboardContent').innerHTML = html;
-    
-    // Load users and leave types
-    Promise.all([
-        database.ref('users').once('value'),
-        database.ref('leave_types').once('value')
-    ]).then(([usersSnap, typesSnap]) => {
+
+    // Load users
+    database.ref('users').once('value').then(snapshot => {
         const userSelect = document.getElementById('assignUser');
-        const typeSelect = document.getElementById('assignLeaveType');
-        
-        // Clear existing options except the default one
-        while (userSelect.options.length > 1) {
-            userSelect.remove(1);
-        }
-        while (typeSelect.options.length > 1) {
-            typeSelect.remove(1);
-        }
-        
-        // Populate users
-        const addedUsers = new Set(); // Track added users
-        usersSnap.forEach(user => {
+        snapshot.forEach(user => {
             const userData = user.val();
-            if (!addedUsers.has(user.key)) {
-                const option = document.createElement('option');
-                option.value = user.key;
-                option.textContent = userData.name + ' (' + userData.role + ')';
-                userSelect.appendChild(option);
-                addedUsers.add(user.key);
-            }
+            const option = document.createElement('option');
+            option.value = user.key;
+            option.textContent = userData.name;
+            userSelect.appendChild(option);
         });
-        
-        // Populate leave types
-        const addedTypes = new Set(); // Track added types
-        if (typesSnap.exists()) {
-            typesSnap.forEach(type => {
-                const typeData = type.val();
-                if (!addedTypes.has(type.key)) {
-                    const option = document.createElement('option');
-                    option.value = type.key;
-                    option.textContent = typeData.name;
-                    typeSelect.appendChild(option);
-                    addedTypes.add(type.key);
-                }
-            });
-        }
+    }).catch(error => {
+        console.error('Error loading users:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading users: ' + error.message,
+            icon: 'error'
+        });
     });
-    
-    // Load leave balances with a different approach
-    database.ref('leave_balances').once('value').then(async snapshot => {
+
+    // Load leave types
+    database.ref('leave_types').once('value').then(snapshot => {
+        const leaveTypeSelect = document.getElementById('assignLeaveType');
+        snapshot.forEach(type => {
+            const typeData = type.val();
+            const option = document.createElement('option');
+            option.value = type.key;
+            option.textContent = typeData.name;
+            leaveTypeSelect.appendChild(option);
+        });
+    }).catch(error => {
+        console.error('Error loading leave types:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading leave types: ' + error.message,
+            icon: 'error'
+        });
+    });
+
+    // Load leave balances
+    database.ref('leave_balances').once('value').then(snapshot => {
         const tableBody = document.getElementById('leaveBalancesTable');
-        // Clear the table body first
         tableBody.innerHTML = '';
-        
+
         if (!snapshot.exists()) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No leave balances found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No leave balances found</td></tr>';
             return;
         }
 
-        // Get all users and leave types first to reduce database calls
-        const [usersSnapshot, leaveTypesSnapshot] = await Promise.all([
-            database.ref('users').once('value'),
-            database.ref('leave_types').once('value')
-        ]);
-
-        const users = {};
-        const leaveTypes = {};
-        
-        usersSnapshot.forEach(user => {
-            users[user.key] = user.val();
-        });
-        
-        leaveTypesSnapshot.forEach(type => {
-            leaveTypes[type.key] = type.val();
-        });
-
-        // Store all balances in an array first
-        const balances = [];
+        const promises = [];
         snapshot.forEach(balance => {
-            const data = balance.val();
-            balances.push({
-                key: balance.key,
-                ...data,
-                userName: users[data.userId]?.name || 'Unknown',
-                leaveTypeName: leaveTypes[data.leaveTypeId]?.name || 'Unknown'
+            const balanceData = balance.val();
+            const userPromise = database.ref(`users/${balanceData.userId}`).once('value');
+            const typePromise = database.ref(`leave_types/${balanceData.leaveTypeId}`).once('value');
+            promises.push(Promise.all([userPromise, typePromise]).then(([userSnapshot, typeSnapshot]) => {
+                const userData = userSnapshot.val();
+                const typeData = typeSnapshot.val();
+                return {
+                    key: balance.key,
+                    userName: userData ? userData.name : 'Unknown',
+                    leaveTypeName: typeData ? typeData.name : 'Unknown',
+                    year: balanceData.year,
+                    totalDays: balanceData.totalDays
+                };
+            }));
+        });
+
+        Promise.all(promises).then(balances => {
+            balances.forEach(balance => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${balance.userName}</td>
+                    <td>${balance.leaveTypeName}</td>
+                    <td>${balance.year}</td>
+                    <td>${balance.totalDays}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteLeaveBalance('${balance.key}')">Delete</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
             });
         });
-
-        // Sort balances by user name, leave type, and year
-        balances.sort((a, b) => {
-            if (a.userName !== b.userName) return a.userName.localeCompare(b.userName);
-            if (a.leaveTypeName !== b.leaveTypeName) return a.leaveTypeName.localeCompare(b.leaveTypeName);
-            return a.year - b.year;
-        });
-
-        // Use a Set to track unique combinations
-        const seen = new Set();
-        const uniqueBalances = balances.filter(balance => {
-            const key = `${balance.userId}_${balance.leaveTypeId}_${balance.year}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-
-        // Clear the table again before adding rows
-        tableBody.innerHTML = '';
-
-        // Display unique balances
-        uniqueBalances.forEach(balance => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${balance.userName}</td>
-                <td>${balance.leaveTypeName}</td>
-                <td>${balance.year}</td>
-                <td>${balance.totalDays}</td>
-                <td>${balance.usedDays || 0}</td>
-                <td>${balance.remainingDays}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-
-        // If no balances after filtering
-        if (uniqueBalances.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No leave balances found</td></tr>';
-        }
     }).catch(error => {
         console.error('Error loading leave balances:', error);
-        const tableBody = document.getElementById('leaveBalancesTable');
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error loading leave balances</td></tr>';
+        showNotification({
+            title: 'Error',
+            text: 'Error loading leave balances: ' + error.message,
+            icon: 'error'
+        });
     });
-    
+
     // Assign leave form submission
     document.getElementById('assignLeaveForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        
+
+        const userId = document.getElementById('assignUser').value;
+        const leaveTypeId = document.getElementById('assignLeaveType').value;
+        const days = parseInt(document.getElementById('assignDays').value);
+        const year = parseInt(document.getElementById('assignYear').value);
+
         try {
-            const userId = document.getElementById('assignUser').value;
-            const leaveTypeId = document.getElementById('assignLeaveType').value;
-            const days = parseInt(document.getElementById('assignDays').value);
-            const year = parseInt(document.getElementById('assignYear').value);
-            
-            if (!userId || !leaveTypeId || isNaN(days) || isNaN(year)) {
-                await showNotification({
-                    title: 'Error',
-                    text: 'Please fill all fields correctly',
-                    icon: 'error'
-                });
-                submitButton.disabled = false;
-                return;
-            }
-
-            // Get a reference to the leave_balances node filtered by userId and year
-            const balancesRef = database.ref('leave_balances');
-            const query = balancesRef
-                .orderByChild('userId')
-                .equalTo(userId);
-            
-            const snapshot = await query.once('value');
-            let existingBalance = null;
-
-            // Check for existing balance
-            snapshot.forEach(child => {
-                const balance = child.val();
-                if (balance.leaveTypeId === leaveTypeId && balance.year === year) {
-                    existingBalance = {
-                        key: child.key,
-                        ...balance
-                    };
-                    return true; // Break the forEach loop
-                }
+            await database.ref('leave_balances').push().set({
+                userId: userId,
+                leaveTypeId: leaveTypeId,
+                year: year,
+                totalDays: days
             });
-
-            if (existingBalance) {
-                await balancesRef.child(existingBalance.key).update({
-                    totalDays: days,
-                    remainingDays: days,
-                    updatedAt: firebase.database.ServerValue.TIMESTAMP
-                });
-            } else {
-                const newBalance = {
-                    userId: userId,
-                    leaveTypeId: leaveTypeId,
-                    year: year,
-                    totalDays: days,
-                    remainingDays: days,
-                    usedDays: 0,
-                    createdAt: firebase.database.ServerValue.TIMESTAMP
-                };
-                await balancesRef.push().set(newBalance);
-            }
-
-            await showNotification({
+            showNotification({
                 title: 'Success',
-                text: 'Leave balance assigned successfully',
+                text: 'Leave assigned successfully',
                 icon: 'success',
                 toast: true
             });
-
             document.getElementById('assignLeaveForm').reset();
-            setTimeout(() => {
-                loadAssignLeave();
-            }, 100);
-
+            document.getElementById('assignYear').value = new Date().getFullYear();
+            loadAssignLeave();
         } catch (error) {
             console.error('Error assigning leave:', error);
-            await showNotification({
+            showNotification({
                 title: 'Error',
                 text: 'Error assigning leave: ' + error.message,
                 icon: 'error'
             });
-        } finally {
-            submitButton.disabled = false;
+        }
+    });
+}
+
+async function deleteLeaveBalance(balanceId) {
+    showNotification({
+        title: 'Are you sure?',
+        text: 'This action cannot be undone!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, cancel',
+        showConfirmButton: true
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                await database.ref('leave_balances/' + balanceId).remove();
+                showNotification({
+                    title: 'Deleted!',
+                    text: 'Leave balance has been deleted successfully',
+                    icon: 'success',
+                    toast: true
+                });
+                loadAssignLeave();
+            } catch (error) {
+                console.error('Error deleting leave balance:', error);
+                showNotification({
+                    title: 'Error',
+                    text: 'Error deleting leave balance: ' + error.message,
+                    icon: 'error'
+                });
+            }
         }
     });
 }
 
 function loadCompanyHolidays() {
-    // First ensure Firebase is initialized
-    if (!auth || !database) {
-        console.log('Waiting for Firebase initialization before loading company holidays...');
-        waitForFirebase().then(() => {
-            loadCompanyHolidays();
-        }).catch(error => {
-            console.error('Error loading company holidays:', error);
-        });
-        return;
-    }
-
     const html = `
         <div class="row">
             <div class="col-md-12">
@@ -1032,13 +1165,12 @@ function loadCompanyHolidays() {
                                     <tr>
                                         <th>Name</th>
                                         <th>Date</th>
-                                        <th>Description</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="holidaysTable">
                                     <tr>
-                                        <td colspan="4" class="text-center">Loading...</td>
+                                        <td colspan="3" class="text-center">Loading...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1047,13 +1179,12 @@ function loadCompanyHolidays() {
                 </div>
             </div>
         </div>
-        
-        <!-- Add Holiday Modal -->
-        <div class="modal fade" id="addHolidayModal" tabindex="-1" aria-hidden="true">
+
+        <div class="modal fade" id="addHolidayModal" tabindex="-1" role="dialog" aria-labelledby="addHolidayModalLabel">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Add Company Holiday</h5>
+                        <h5 class="modal-title" id="addHolidayModalLabel">Add Holiday</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -1066,10 +1197,6 @@ function loadCompanyHolidays() {
                                 <label for="holidayDate" class="form-label">Date</label>
                                 <input type="date" class="form-control" id="holidayDate" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="holidayDesc" class="form-label">Description</label>
-                                <textarea class="form-control" id="holidayDesc" rows="3"></textarea>
-                            </div>
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">Add Holiday</button>
                             </div>
@@ -1079,26 +1206,24 @@ function loadCompanyHolidays() {
             </div>
         </div>
     `;
-    
+
     document.getElementById('dashboardContent').innerHTML = html;
-    
-    // Load holidays
+
     database.ref('holidays').once('value').then(snapshot => {
         const tableBody = document.getElementById('holidaysTable');
         tableBody.innerHTML = '';
-        
+
         if (!snapshot.exists()) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No holidays defined</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No holidays defined</td></tr>';
             return;
         }
-        
+
         snapshot.forEach(holiday => {
             const holidayData = holiday.val();
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${holidayData.name}</td>
-                <td>${formatDate(holidayData.date)}</td>
-                <td>${holidayData.description || '-'}</td>
+                <td>${holidayData.date}</td>
                 <td>
                     <button class="btn btn-sm btn-warning edit-holiday-btn" data-id="${holiday.key}">Edit</button>
                     <button class="btn btn-sm btn-danger delete-holiday-btn" data-id="${holiday.key}">Delete</button>
@@ -1106,36 +1231,40 @@ function loadCompanyHolidays() {
             `;
             tableBody.appendChild(row);
         });
-        
-        // Add event listeners to buttons
+
         document.querySelectorAll('.edit-holiday-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const holidayId = this.getAttribute('data-id');
                 editHoliday(holidayId);
             });
         });
-        
+
         document.querySelectorAll('.delete-holiday-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const holidayId = this.getAttribute('data-id');
                 deleteHoliday(holidayId);
             });
         });
+    }).catch(error => {
+        console.error('Error loading holidays:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading holidays: ' + error.message,
+            icon: 'error'
+        });
     });
-    
-    // Add holiday form submission
-    document.getElementById('addHolidayForm')?.addEventListener('submit', (e) => {
+
+    document.getElementById('addHolidayForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const name = document.getElementById('holidayName').value;
         const date = document.getElementById('holidayDate').value;
-        const description = document.getElementById('holidayDesc').value;
-        
-        database.ref('holidays').push().set({
-            name: name,
-            date: date,
-            description: description
-        }).then(() => {
+
+        try {
+            await database.ref('holidays').push().set({
+                name: name,
+                date: date
+            });
             showNotification({
                 title: 'Success',
                 text: 'Holiday added successfully',
@@ -1143,20 +1272,21 @@ function loadCompanyHolidays() {
                 toast: true
             });
             document.getElementById('addHolidayForm').reset();
-            $('#addHolidayModal').modal('hide');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addHolidayModal'));
+            modal.hide();
             loadCompanyHolidays();
-        }).catch(error => {
+        } catch (error) {
+            console.error('Error adding holiday:', error);
             showNotification({
                 title: 'Error',
                 text: 'Error adding holiday: ' + error.message,
                 icon: 'error'
             });
-        });
+        }
     });
 }
 
 function editHoliday(holidayId) {
-    // Implementation for editing holiday
     alert('Edit holiday with ID: ' + holidayId);
 }
 
@@ -1169,25 +1299,25 @@ function deleteHoliday(holidayId) {
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'No, cancel',
         showConfirmButton: true
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            database.ref('holidays/' + holidayId).remove()
-                .then(() => {
-                    showNotification({
-                        title: 'Deleted!',
-                        text: 'Holiday has been deleted successfully',
-                        icon: 'success',
-                        toast: true
-                    });
-                    loadCompanyHolidays();
-                })
-                .catch(error => {
-                    showNotification({
-                        title: 'Error',
-                        text: 'Error deleting holiday: ' + error.message,
-                        icon: 'error'
-                    });
+            try {
+                await database.ref('holidays/' + holidayId).remove();
+                showNotification({
+                    title: 'Deleted!',
+                    text: 'Holiday has been deleted successfully',
+                    icon: 'success',
+                    toast: true
                 });
+                loadCompanyHolidays();
+            } catch (error) {
+                console.error('Error deleting holiday:', error);
+                showNotification({
+                    title: 'Error',
+                    text: 'Error deleting holiday: ' + error.message,
+                    icon: 'error'
+                });
+            }
         }
     });
 }
@@ -1201,197 +1331,215 @@ function loadReports() {
                         <h4>Reports</h4>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5>Leave Summary</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="leaveSummaryChart" height="200"></canvas>
-                                    </div>
-                                </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="reportType" class="form-label">Report Type</label>
+                                <select class="form-select" id="reportType">
+                                    <option value="leaveBalances">Leave Balances</option>
+                                    <option value="leaveRequests">Leave Requests</option>
+                                    <option value="employeeDetails">Employee Details</option>
+                                </select>
                             </div>
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5>Leave by Department</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="departmentLeaveChart" height="200"></canvas>
-                                    </div>
-                                </div>
+                            <div class="col-md-4">
+                                <label for="reportYear" class="form-label">Year</label>
+                                <input type="number" class="form-control" id="reportYear" value="${new Date().getFullYear()}">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
                             </div>
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h5>Detailed Leave Report</h5>
-                                        <button class="btn btn-primary" id="exportReportBtn">
-                                            <i class="fas fa-download me-2"></i>Export to CSV
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="table-responsive">
-                                            <table class="table table-striped">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Employee</th>
-                                                        <th>Leave Type</th>
-                                                        <th>Start Date</th>
-                                                        <th>End Date</th>
-                                                        <th>Days</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="detailedReportTable">
-                                                    <tr>
-                                                        <td colspan="6" class="text-center">Loading...</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div id="reportOutput">
+                            <p>Select a report type and year, then click Generate Report.</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     `;
-    
+
     document.getElementById('dashboardContent').innerHTML = html;
-    
-    // Load report data
-    loadTeamLeaveData().then(teamData => {
-        const tableBody = document.getElementById('detailedReportTable');
-        tableBody.innerHTML = '';
-        
-        if (teamData.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No leave data found</td></tr>';
-            return;
-        }
-        
-        teamData.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${item.employeeName}</td>
-                <td>${item.leaveTypeName || 'Unknown'}</td>
-                <td>${formatDate(item.startDate)}</td>
-                <td>${formatDate(item.endDate)}</td>
-                <td>${item.days}</td>
-                <td><span class="badge ${getStatusClass(item.status)}">${item.status}</span></td>
-            `;
-            tableBody.appendChild(row);
-        });
-        
-        // In a real app, you would generate charts here using Chart.js
-        // This is just a placeholder
-        console.log('Charts would be generated here with the data');
-        
-        // Export to CSV
-        document.getElementById('exportReportBtn')?.addEventListener('click', () => {
-            exportToCSV(teamData);
-        });
-    });
 }
 
-function exportToCSV(data) {
-    // Convert data to CSV
-    let csv = 'Employee,Leave Type,Start Date,End Date,Days,Status\n';
-    
-    data.forEach(item => {
-        csv += `"${item.employeeName}","${item.leaveTypeName || 'Unknown'}","${formatDate(item.startDate)}","${formatDate(item.endDate)}",${item.days},${item.status}\n`;
+async function generateReport() {
+    const reportType = document.getElementById('reportType').value;
+    const year = parseInt(document.getElementById('reportYear').value);
+    const reportOutput = document.getElementById('reportOutput');
+
+    try {
+        let data = [];
+        let headers = [];
+
+        if (reportType === 'leaveBalances') {
+            const snapshot = await database.ref('leave_balances').once('value');
+            headers = ['User', 'Leave Type', 'Year', 'Total Days'];
+            snapshot.forEach(balance => {
+                const balanceData = balance.val();
+                if (balanceData.year === year) {
+                    data.push([
+                        balanceData.userId, // Need to fetch user name
+                        balanceData.leaveTypeId, // Need to fetch leave type name
+                        balanceData.year,
+                        balanceData.totalDays
+                    ]);
+                }
+            });
+
+            // Fetch user and leave type names
+            const promises = data.map(async row => {
+                const userSnapshot = await database.ref(`users/${row[0]}`).once('value');
+                const typeSnapshot = await database.ref(`leave_types/${row[1]}`).once('value');
+                return [
+                    userSnapshot.val()?.name || 'Unknown',
+                    typeSnapshot.val()?.name || 'Unknown',
+                    row[2],
+                    row[3]
+                ];
+            });
+            data = await Promise.all(promises);
+        } else if (reportType === 'leaveRequests') {
+            const snapshot = await database.ref('leave_requests').once('value');
+            headers = ['User', 'Leave Type', 'Start Date', 'End Date', 'Status'];
+            snapshot.forEach(request => {
+                const requestData = request.val();
+                const startYear = new Date(requestData.startDate).getFullYear();
+                if (startYear === year) {
+                    data.push([
+                        requestData.userId,
+                        requestData.leaveTypeId,
+                        requestData.startDate,
+                        requestData.endDate,
+                        requestData.status
+                    ]);
+                }
+            });
+
+            const promises = data.map(async row => {
+                const userSnapshot = await database.ref(`users/${row[0]}`).once('value');
+                const typeSnapshot = await database.ref(`leave_types/${row[1]}`).once('value');
+                return [
+                    userSnapshot.val()?.name || 'Unknown',
+                    typeSnapshot.val()?.name || 'Unknown',
+                    row[2],
+                    row[3],
+                    row[4]
+                ];
+            });
+            data = await Promise.all(promises);
+        } else if (reportType === 'employeeDetails') {
+            const snapshot = await database.ref('users').once('value');
+            headers = ['Name', 'Email', 'Role', 'Department', 'Employee ID'];
+            snapshot.forEach(user => {
+                const userData = user.val();
+                data.push([
+                    userData.name,
+                    userData.email,
+                    userData.role,
+                    userData.department || 'N/A',
+                    userData.employeeId || 'N/A'
+                ]);
+            });
+        }
+
+        if (data.length === 0) {
+            reportOutput.innerHTML = '<p>No data found for the selected report type and year.</p>';
+            return;
+        }
+
+        // Generate table
+        let tableHtml = `
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            ${headers.map(header => `<th>${header}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(row => `
+                            <tr>
+                                ${row.map(cell => `<td>${cell}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn btn-success mt-3" onclick="exportToCSV('${reportType}', ${year})">Export to CSV</button>
+        `;
+
+        reportOutput.innerHTML = tableHtml;
+    } catch (error) {
+        console.error('Error generating report:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error generating report: ' + error.message,
+            icon: 'error'
+        });
+    }
+}
+
+function exportToCSV(reportType, year) {
+    const reportOutput = document.getElementById('reportOutput');
+    const table = reportOutput.querySelector('table');
+    if (!table) return;
+
+    let csv = [];
+    const rows = table.querySelectorAll('tr');
+
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('th, td');
+        const rowData = Array.from(cols).map(col => `"${col.textContent.replace(/"/g, '""')}"`);
+        csv.push(rowData.join(','));
     });
-    
-    // Create download link
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', 'leave_report.csv');
+    link.setAttribute('download', `${reportType}_${year}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
 
-function initializeModal(modalId, formId, firstInputId) {
+function initializeModal(modalId, inputId) {
     const modal = document.getElementById(modalId);
-    const form = document.getElementById(formId);
-    let previousActiveElement = null;
+    const modalInstance = new bootstrap.Modal(modal);
+    let previousActiveElement;
 
-    if (modal) {
-        modal.addEventListener('show.bs.modal', function () {
-            previousActiveElement = document.activeElement;
-        });
+    modal.addEventListener('show.bs.modal', function () {
+        previousActiveElement = document.activeElement;
+    });
 
-        modal.addEventListener('shown.bs.modal', function () {
-            // Set focus to first input
-            const firstInput = document.getElementById(firstInputId);
-            if (firstInput) {
-                firstInput.focus();
-            }
-        });
+    modal.addEventListener('shown.bs.modal', function () {
+        document.getElementById(inputId).focus();
+    });
 
-        modal.addEventListener('hidden.bs.modal', function () {
-            // Return focus to the element that opened the modal
-            if (previousActiveElement) {
-                previousActiveElement.focus();
-            }
-            // Reset form if it exists
-            if (form) {
-                form.reset();
-            }
-        });
+    modal.addEventListener('hidden.bs.modal', function () {
+        if (previousActiveElement) {
+            previousActiveElement.focus();
+        }
+    });
 
-        // Trap focus within modal
-        modal.addEventListener('keydown', function (e) {
-            if (e.key === 'Tab') {
-                const focusableElements = modal.querySelectorAll(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                const firstFocusable = focusableElements[0];
-                const lastFocusable = focusableElements[focusableElements.length - 1];
-
-                if (e.shiftKey) {
-                    if (document.activeElement === firstFocusable) {
-                        lastFocusable.focus();
-                        e.preventDefault();
-                    }
-                } else {
-                    if (document.activeElement === lastFocusable) {
-                        firstFocusable.focus();
-                        e.preventDefault();
-                    }
-                }
-            }
-        });
-    }
+    return modalInstance;
 }
 
-// Initialize modals with proper focus management
-document.addEventListener('DOMContentLoaded', function() {
-    initializeModal('addUserModal', 'addUserForm', 'newUserName');
-    initializeModal('addLeaveTypeModal', 'addLeaveTypeForm', 'leaveTypeName');
-    initializeModal('addHolidayModal', 'addHolidayForm', 'holidayName');
-});
-
-// Add this new function for employee management
 function loadEmployeeDirectory() {
     const html = `
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="card-header">
                         <h4>Employee Directory</h4>
-                        <div class="d-flex gap-2 align-items-center">
-                            <div class="d-flex align-items-center">
-                                <label class="me-2 text-nowrap">Department:</label>
-                                <select class="form-select form-select-sm" id="employeeDeptFilter" style="width: 200px;">
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="searchEmployee" placeholder="Search by name...">
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select" id="departmentFilterDirectory">
                                     <option value="all">All Departments</option>
                                     <option value="Department A">Department A</option>
                                     <option value="Department B">Department B</option>
@@ -1401,265 +1549,116 @@ function loadEmployeeDirectory() {
                                 </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="row" id="employeeGrid">
-                            <!-- Employee cards will be dynamically added here -->
-                            <div class="col-12 text-center">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
+                        <div class="row" id="employeeCards">
+                            <div class="col-12 text-center">Loading...</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Employee Details Modal -->
         <div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header border-0 pb-0">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Employee Details</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="text-center mb-4">
-                            <div class="avatar-circle mb-3">
-                                <span class="avatar-initials" id="employeeInitials"></span>
-                            </div>
-                            <h4 class="mb-1" id="employeeFullName"></h4>
-                            <p class="text-muted" id="employeeJobTitle"></p>
-                        </div>
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <div class="info-card">
-                                    <h5 class="info-card-title">Contact Information</h5>
-                                    <ul class="list-unstyled">
-                                        <li class="mb-2">
-                                            <i class="fas fa-envelope text-primary me-2"></i>
-                                            <span id="employeeEmail"></span>
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-phone text-primary me-2"></i>
-                                            <span id="employeePhone"></span>
-                                        </li>
-                                        <li>
-                                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                                            <span id="employeeLocation"></span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="info-card">
-                                    <h5 class="info-card-title">Employment Details</h5>
-                                    <ul class="list-unstyled">
-                                        <li class="mb-2">
-                                            <i class="fas fa-id-badge text-primary me-2"></i>
-                                            Employee ID: <span id="employeeIdDisplay"></span>
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-users text-primary me-2"></i>
-                                            Department: <span id="employeeDepartment"></span>
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-user-tie text-primary me-2"></i>
-                                            Manager: <span id="employeeManager"></span>
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-calendar-alt text-primary me-2"></i>
-                                            Start Date: <span id="employeeStartDate"></span>
-                                        </li>
-                                        <li>
-                                            <i class="fas fa-briefcase text-primary me-2"></i>
-                                            Employment Type: <span id="employeeType"></span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="info-card">
-                                    <h5 class="info-card-title">Leave Balance</h5>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Leave Type</th>
-                                                    <th>Total Days</th>
-                                                    <th>Used</th>
-                                                    <th>Remaining</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="employeeLeaveBalance">
-                                                <!-- Leave balance will be dynamically added here -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="modal-body" id="employeeDetailsContent">
+                        <p>Loading...</p>
                     </div>
                 </div>
             </div>
         </div>
-
-        <style>
-            .employee-card {
-                transition: transform 0.2s, box-shadow 0.2s;
-                cursor: pointer;
-            }
-            .employee-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            }
-            .avatar-circle {
-                width: 100px;
-                height: 100px;
-                background-color: #4f46e5;
-                border-radius: 50%;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto;
-            }
-            .avatar-initials {
-                color: white;
-                font-size: 2.5rem;
-                font-weight: bold;
-            }
-            .info-card {
-                background-color: #f8fafc;
-                border-radius: 10px;
-                padding: 1.5rem;
-                height: 100%;
-            }
-            .info-card-title {
-                color: #4f46e5;
-                font-size: 1.1rem;
-                margin-bottom: 1rem;
-                font-weight: 600;
-            }
-            .employee-mini-avatar {
-                width: 48px;
-                height: 48px;
-                background-color: #4f46e5;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 1.2rem;
-                margin-right: 1rem;
-            }
-        </style>
     `;
 
     document.getElementById('dashboardContent').innerHTML = html;
 
-    // Load employees
+    const modalInstance = initializeModal('employeeDetailsModal', null);
+
     let allEmployees = [];
-    
-    database.ref('users').once('value').then(async snapshot => {
-        const employeeGrid = document.getElementById('employeeGrid');
-        employeeGrid.innerHTML = ''; // Clear loading spinner
-        
+
+    database.ref('users').once('value').then(snapshot => {
+        const employeeCards = document.getElementById('employeeCards');
+        employeeCards.innerHTML = '';
+
         if (!snapshot.exists()) {
-            employeeGrid.innerHTML = '<div class="col-12 text-center">No employees found</div>';
+            employeeCards.innerHTML = '<div class="col-12 text-center">No employees found</div>';
             return;
         }
 
-        // Store all employees and sort by name
         snapshot.forEach(user => {
             const userData = user.val();
-            if (userData.role === 'employee') {
-                userData.id = user.key;
-                allEmployees.push(userData);
-            }
+            userData.id = user.key;
+            allEmployees.push(userData);
         });
 
-        allEmployees.sort((a, b) => a.name.localeCompare(b.name));
-        
-        // Initial render of all employees
         renderEmployeeCards(allEmployees);
 
-        // Set up department filter event listener
-        document.getElementById('employeeDeptFilter').addEventListener('change', (e) => {
-            const selectedDepartment = e.target.value;
-            const filteredEmployees = selectedDepartment === 'all' 
-                ? allEmployees 
-                : allEmployees.filter(emp => emp.department === selectedDepartment);
+        document.getElementById('searchEmployee').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredEmployees = allEmployees.filter(employee =>
+                employee.name.toLowerCase().includes(searchTerm)
+            );
             renderEmployeeCards(filteredEmployees);
+        });
+
+        document.getElementById('departmentFilterDirectory').addEventListener('change', (e) => {
+            const selectedDepartment = e.target.value;
+            const filteredEmployees = selectedDepartment === 'all'
+                ? allEmployees
+                : allEmployees.filter(employee => employee.department === selectedDepartment);
+            renderEmployeeCards(filteredEmployees);
+        });
+    }).catch(error => {
+        console.error('Error loading employees:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading employees: ' + error.message,
+            icon: 'error'
         });
     });
 }
 
-// Helper function to render employee cards
 function renderEmployeeCards(employees) {
-    const employeeGrid = document.getElementById('employeeGrid');
-    employeeGrid.innerHTML = '';
+    const employeeCards = document.getElementById('employeeCards');
+    employeeCards.innerHTML = '';
 
     if (employees.length === 0) {
-        employeeGrid.innerHTML = '<div class="col-12 text-center">No employees found</div>';
+        employeeCards.innerHTML = '<div class="col-12 text-center">No employees found</div>';
         return;
     }
 
     employees.forEach(employee => {
-        const initials = getInitials(employee.name);
-        const col = document.createElement('div');
-        col.className = 'col-md-6 col-lg-4 mb-4';
-        col.innerHTML = `
-            <div class="card employee-card h-100" onclick="showEmployeeDetails('${employee.id}')">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="employee-mini-avatar">
-                            ${initials}
-                        </div>
-                        <div>
-                            <h5 class="card-title mb-0">${employee.name}</h5>
-                            <small class="text-muted">${employee.jobTitle || 'No title specified'}</small>
-                        </div>
+        const card = document.createElement('div');
+        card.className = 'col-md-4 mb-3';
+        card.innerHTML = `
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="avatar avatar-lg bg-primary text-white rounded-circle mb-3">
+                        ${getInitials(employee.name)}
                     </div>
-                    <div class="card-text">
-                        <p class="mb-1">
-                            <i class="fas fa-users text-primary me-2"></i>
-                            ${employee.department || 'No department'}
-                        </p>
-                        <p class="mb-1">
-                            <i class="fas fa-envelope text-primary me-2"></i>
-                            ${employee.email}
-                        </p>
-                        <p class="mb-0">
-                            <i class="fas fa-phone text-primary me-2"></i>
-                            ${employee.phone || 'No phone number'}
-                        </p>
-                    </div>
+                    <h5 class="card-title">${employee.name}</h5>
+                    <p class="card-text">${employee.jobTitle || 'N/A'}</p>
+                    <p class="card-text">${employee.department || 'Not assigned'}</p>
+                    <button class="btn btn-primary" onclick="showEmployeeDetails('${employee.id}')">View Details</button>
                 </div>
             </div>
         `;
-        employeeGrid.appendChild(col);
+        employeeCards.appendChild(card);
     });
 }
 
-// Helper function to get initials from name
 function getInitials(name) {
-    return name
-        .split(' ')
-        .map(word => word[0])
-        .join('')
-        .toUpperCase()
-        .substring(0, 2);
+    return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase();
 }
 
-// Function to show employee details
-async function showEmployeeDetails(employeeId) {
+async function showEmployeeDetails(userId) {
     try {
-        // Fetch employee data
-        const employeeSnapshot = await database.ref(`users/${employeeId}`).once('value');
-        const employee = employeeSnapshot.val();
+        const userSnapshot = await database.ref(`users/${userId}`).once('value');
+        const userData = userSnapshot.val();
 
-        if (!employee) {
+        if (!userData) {
             showNotification({
                 title: 'Error',
                 text: 'Employee not found',
@@ -1668,68 +1667,33 @@ async function showEmployeeDetails(employeeId) {
             return;
         }
 
-        // Update modal with employee details
-        document.getElementById('employeeInitials').textContent = getInitials(employee.name);
-        document.getElementById('employeeFullName').textContent = employee.name;
-        document.getElementById('employeeJobTitle').textContent = employee.jobTitle || 'No title specified';
-        document.getElementById('employeeEmail').textContent = employee.email;
-        document.getElementById('employeePhone').textContent = employee.phone || 'No phone number';
-        document.getElementById('employeeLocation').textContent = employee.location || 'Not specified';
-        document.getElementById('employeeIdDisplay').textContent = employee.employeeId || 'Not assigned';
-        document.getElementById('employeeDepartment').textContent = employee.department || 'Not assigned';
-        document.getElementById('employeeManager').textContent = employee.manager || 'Not assigned';
-        document.getElementById('employeeStartDate').textContent = employee.startDate || 'Not specified';
-        document.getElementById('employeeType').textContent = employee.employmentType || 'Not specified';
+        const detailsHtml = `
+            <div class="text-center mb-3">
+                <div class="avatar avatar-lg bg-primary text-white rounded-circle">
+                    ${getInitials(userData.name)}
+                </div>
+                <h4 class="mt-2">${userData.name}</h4>
+            </div>
+            <p><strong>Email:</strong> ${userData.email}</p>
+            <p><strong>Role:</strong> ${userData.role}</p>
+            <p><strong>Department:</strong> ${userData.department || 'Not assigned'}</p>
+            <p><strong>Job Title:</strong> ${userData.jobTitle || 'N/A'}</p>
+            <p><strong>Employee ID:</strong> ${userData.employeeId || 'N/A'}</p>
+            <p><strong>Phone:</strong> ${userData.phone || 'N/A'}</p>
+            <p><strong>Location:</strong> ${userData.location || 'N/A'}</p>
+            <p><strong>Start Date:</strong> ${userData.startDate || 'N/A'}</p>
+            <p><strong>Employment Type:</strong> ${userData.employmentType || 'N/A'}</p>
+            <p><strong>Manager:</strong> ${userData.manager || 'Not assigned'}</p>
+        `;
 
-        // Fetch and display leave balance
-        const leaveBalanceSnapshot = await database.ref('leave_balances')
-            .orderByChild('userId')
-            .equalTo(employeeId)
-            .once('value');
-        
-        const leaveBalanceTable = document.getElementById('employeeLeaveBalance');
-        leaveBalanceTable.innerHTML = '';
-
-        if (leaveBalanceSnapshot.exists()) {
-            const leaveTypes = {};
-            const currentYear = new Date().getFullYear();
-
-            // First, get all leave types
-            const leaveTypesSnapshot = await database.ref('leave_types').once('value');
-            leaveTypesSnapshot.forEach(type => {
-                leaveTypes[type.key] = type.val().name;
-            });
-
-            leaveBalanceSnapshot.forEach(balance => {
-                const balanceData = balance.val();
-                if (balanceData.year === currentYear) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${leaveTypes[balanceData.leaveTypeId] || 'Unknown'}</td>
-                        <td>${balanceData.totalDays}</td>
-                        <td>${balanceData.usedDays || 0}</td>
-                        <td>${balanceData.remainingDays}</td>
-                    `;
-                    leaveBalanceTable.appendChild(row);
-                }
-            });
-        } else {
-            leaveBalanceTable.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center">No leave balance found</td>
-                </tr>
-            `;
-        }
-
-        // Show the modal
-        const modal = new bootstrap.Modal(document.getElementById('employeeDetailsModal'));
+        document.getElementById('employeeDetailsContent').innerHTML = detailsHtml;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('employeeDetailsModal'));
         modal.show();
-
     } catch (error) {
-        console.error('Error showing employee details:', error);
+        console.error('Error loading employee details:', error);
         showNotification({
             title: 'Error',
-            text: 'Error loading employee details',
+            text: 'Error loading employee details: ' + error.message,
             icon: 'error'
         });
     }

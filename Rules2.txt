@@ -1,0 +1,121 @@
+{
+  "rules": {
+    ".read": "false",
+    ".write": "false",
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".validate": "newData.hasChildren(['name', 'email', 'role']) || !newData.exists()",
+        "name": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "email": { ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$/)" },
+        "role": { ".validate": "newData.isString() && (newData.val() === 'employee' || newData.val() === 'manager' || newData.val() === 'admin')" },
+        "department": { ".validate": "!newData.exists() || newData.isString()" },
+        "employeeId": { ".validate": "!newData.exists() || newData.isString()" },
+        "phone": { ".validate": "!newData.exists() || newData.isString()" },
+        "jobTitle": { ".validate": "!newData.exists() || newData.isString()" },
+        "manager": { ".validate": "!newData.exists() || newData.isString()" },
+        "startDate": { ".validate": "!newData.exists() || newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "employmentType": { ".validate": "!newData.exists() || newData.isString() && (newData.val() === 'Full-time' || newData.val() === 'Part-time' || newData.val() === 'Contractor')" },
+        "location": { ".validate": "!newData.exists() || newData.isString() && (newData.val() === 'Office' || newData.val() === 'Remote' || newData.val() === 'Hybrid')" },
+        "username": { ".validate": "!newData.exists() || newData.isString()" },
+        "createdAt": { ".validate": "!newData.exists() || newData.isNumber()" },
+        "isTestAccount": { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "$other": { ".validate": "false" }
+      }
+    },
+    "attendance": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        "$date": {
+          ".validate": "newData.hasChildren(['clockIn', 'date'])",
+          "clockIn": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z$/)" },
+          "clockOut": { ".validate": "!newData.exists() || newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z$/)" },
+          "date": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+          "location": { ".validate": "!newData.exists() || newData.isString() && newData.val().length > 0" },
+          "workType": { ".validate": "!newData.exists() || newData.isString() && (newData.val() === 'office' || newData.val() === 'remote')" },
+          "breaks": {
+            "$breakId": {
+              ".validate": "newData.hasChildren(['start', 'type'])",
+              "start": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z$/)" },
+              "end": { ".validate": "!newData.exists() || newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z$/)" },
+              "type": { ".validate": "newData.isString() && newData.val().length > 0" },
+              "$other": { ".validate": "false" }
+            }
+          },
+          "$other": { ".validate": "false" }
+        }
+      }
+    },
+    "leave_types": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$typeId": {
+        ".validate": "newData.hasChildren(['name'])",
+        "name": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "description": { ".validate": "!newData.exists() || newData.isString()" },
+        "$other": { ".validate": "false" }
+      }
+    },
+    "leave_balances": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$balanceId": {
+        ".validate": "newData.hasChildren(['userId', 'leaveTypeId', 'year', 'totalDays', 'remainingDays'])",
+        "userId": { ".validate": "newData.isString() && root.child('users').child(newData.val()).exists()" },
+        "leaveTypeId": { ".validate": "newData.isString() && root.child('leave_types').child(newData.val()).exists()" },
+        "year": { ".validate": "newData.isNumber() && newData.val() >= 2000 && newData.val() <= 2100" },
+        "totalDays": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "remainingDays": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "usedDays": { ".validate": "!newData.exists() || newData.isNumber() && newData.val() >= 0" },
+        "createdAt": { ".validate": "!newData.exists() || newData.isNumber()" },
+        "updatedAt": { ".validate": "!newData.exists() || newData.isNumber()" },
+        "$other": { ".validate": "false" }
+      }
+    },
+    "holidays": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$holidayId": {
+        ".validate": "newData.hasChildren(['name', 'date'])",
+        "name": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "date": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "description": { ".validate": "!newData.exists() || newData.isString()" },
+        "$other": { ".validate": "false" }
+      }
+    },
+    "leave_requests": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".indexOn": ["userId", "status"],
+      "$requestId": {
+        ".read": "auth != null && (root.child('leave_requests').child($requestId).child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (root.child('leave_requests').child($requestId).child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".validate": "newData.hasChildren(['userId', 'leaveTypeId', 'startDate', 'endDate', 'days', 'status'])",
+        "userId": { ".validate": "newData.isString() && root.child('users').child(newData.val()).exists()" },
+        "leaveTypeId": { ".validate": "newData.isString() && root.child('leave_types').child(newData.val()).exists()" },
+        "employeeName": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "leaveTypeName": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "startDate": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "endDate": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "days": { ".validate": "newData.isNumber() && newData.val() > 0" },
+        "status": { ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'approved' || newData.val() === 'rejected')" },
+        "createdAt": { ".validate": "!newData.exists() || newData.isNumber()" },
+        "$other": { ".validate": "false" }
+      }
+    },
+    "time_clock": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".validate": "newData.hasChildren(['currentStatus'])",
+        "currentStatus": { ".validate": "newData.isString() && (newData.val() === 'clocked_in' || newData.val() === 'clocked_out')" },
+        "lastClockIn": { ".validate": "!newData.exists() || newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z$/)" },
+        "lastClockOut": { ".validate": "!newData.exists() || newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z$/)" },
+        "createdAt": { ".validate": "!newData.exists() || newData.isNumber()" },
+        "$other": { ".validate": "false" }
+      }
+    }
+  }
+}
