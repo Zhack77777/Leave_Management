@@ -4,43 +4,392 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leave Management System - Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'float': 'float 6s ease-in-out infinite',
+                        'morph': 'morph 8s ease-in-out infinite',
+                        'pulse-soft': 'pulsesoft 2s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-20px) rotate(10deg)' }
+                        },
+                        morph: {
+                            '0%, 100%': { borderRadius: '60% 40% 30% 70%/60% 30% 70% 40%' },
+                            '50%': { borderRadius: '30% 60% 70% 40%/50% 60% 30% 60%' }
+                        },
+                        pulsesoft: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.05)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(125deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Modern Mesh Gradient */
+        .mesh-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(124, 58, 237, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Neumorphic Elements */
+        .neu-shadow {
+            box-shadow: 
+                20px 20px 60px rgba(0, 0, 0, 0.2),
+                -20px -20px 60px rgba(255, 255, 255, 0.1);
+        }
+
+        .neu-button {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            box-shadow: 
+                5px 5px 15px rgba(0, 0, 0, 0.2),
+                -5px -5px 15px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .neu-button:hover {
+            box-shadow: 
+                inset 5px 5px 15px rgba(0, 0, 0, 0.2),
+                inset -5px -5px 15px rgba(255, 255, 255, 0.1);
+            transform: translateY(2px);
+        }
+
+        /* Morphing Blob */
+        .blob {
+            position: absolute;
+            animation: morph 8s ease-in-out infinite;
+            background: linear-gradient(45deg, rgba(99, 102, 241, 0.3), rgba(124, 58, 237, 0.3));
+            transform-origin: 50% 50%;
+            z-index: 0;
+        }
+
+        /* Enhanced Glass Effect */
+        .glass-modern {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 
+                0 8px 32px 0 rgba(31, 38, 135, 0.2),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Particle Effect */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Input Focus Effect */
+        .modern-input {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .modern-input:focus {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
+        }
+
+        /* Animated Background Lines */
+        .bg-lines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            background: 
+                linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px) 0 0 / 50px 50px,
+                linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px) 0 0 / 50px 50px;
+            animation: moveLines 20s linear infinite;
+        }
+
+        @keyframes moveLines {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* 3D Icons Animations */
+        .icon-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+
+        .icon-3d:hover {
+            transform: translateZ(20px) rotateY(10deg);
+        }
+
+        .floating-icons {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .floating-icon {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            animation: float var(--float-time) ease-in-out infinite;
+            transform-style: preserve-3d;
+        }
+
+        .icon-calendar {
+            top: 15%;
+            left: 10%;
+            --float-time: 7s;
+        }
+
+        .icon-vacation {
+            top: 60%;
+            right: 12%;
+            --float-time: 8s;
+        }
+
+        .icon-clock {
+            bottom: 20%;
+            left: 15%;
+            --float-time: 6s;
+        }
+
+        .icon-balance {
+            top: 25%;
+            right: 15%;
+            --float-time: 9s;
+        }
+
+        /* Decorative circles */
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, rgba(99, 102, 241, 0.1), rgba(59, 130, 246, 0.1));
+            animation: float var(--float-time) ease-in-out infinite;
+        }
+
+        .circle-1 {
+            width: 100px;
+            height: 100px;
+            top: 10%;
+            right: 20%;
+            --float-time: 10s;
+        }
+
+        .circle-2 {
+            width: 150px;
+            height: 150px;
+            bottom: 15%;
+            right: 25%;
+            --float-time: 12s;
+        }
+    </style>
 </head>
-<body class="login-page">
-    <div class="container">
-        <div class="row justify-content-center align-items-center min-vh-100">
-            <div class="col-md-6 col-lg-4">
-                <div class="card shadow login-card">
-                    <div class="card-body p-5">
-                        <h3 class="text-center mb-4">Leave Management System</h3>
-                        <div id="loginError" class="alert alert-danger d-none"></div>
-                        <form id="loginForm">
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Username or Email</label>
-                                <input type="text" class="form-control" id="username" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" required>
-                            </div>
-                            <div class="mb-3">
-                                <small class="text-muted">
-                                    Test Accounts:<br>
-                                    Admin: admin@test.com / password123<br>
-                                    Manager: manager@test.com / password123<br>
-                                    Employee: employee@test.com / password123
-                                </small>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">
-                                Login
-                            </button>
-                        </form>
+<body>
+    <!-- Mesh Gradient Background -->
+    <div class="mesh-gradient"></div>
+    
+    <!-- Animated Background Lines -->
+    <div class="bg-lines"></div>
+
+    <!-- Morphing Blobs -->
+    <div class="blob w-96 h-96 top-[-20%] left-[-10%]"></div>
+    <div class="blob w-96 h-96 bottom-[-20%] right-[-10%]"></div>
+
+    <!-- 3D Shapes Background -->
+    <div class="shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Floating Icons -->
+    <div class="floating-icons">
+        <!-- Calendar Icon -->
+        <div class="floating-icon icon-calendar">
+            <svg class="w-8 h-8 text-blue-500 icon-3d" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        </div>
+
+        <!-- Vacation Icon -->
+        <div class="floating-icon icon-vacation">
+            <svg class="w-8 h-8 text-indigo-500 icon-3d" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+
+        <!-- Clock Icon -->
+        <div class="floating-icon icon-clock">
+            <svg class="w-8 h-8 text-blue-400 icon-3d" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+
+        <!-- Work-Life Balance Icon -->
+        <div class="floating-icon icon-balance">
+            <svg class="w-8 h-8 text-indigo-400 icon-3d" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+            </svg>
+        </div>
+
+        <!-- Decorative Circles -->
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+    </div>
+
+    <div class="container mx-auto px-4 relative z-10">
+        <div class="flex justify-center items-center min-h-screen">
+            <div class="w-full max-w-md animate-fade-in perspective-container">
+                <!-- Modern Brand Section -->
+                <div class="text-center mb-8">
+                    <div class="inline-block p-6 glass-modern rounded-2xl mb-4 transform-gpu transition-all duration-300 hover:scale-110 animate-pulse-soft neu-shadow">
+                        <div class="relative icon-3d">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <div class="absolute -right-1 -top-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                        </div>
                     </div>
+                    <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Welcome Back</h1>
+                    <p class="text-white/90 text-lg">Sign in to manage your leaves</p>
+                </div>
+
+                <!-- Enhanced Login Card -->
+                <div class="glass-modern rounded-2xl p-8 neu-shadow transform-gpu transition-all duration-500 hover:translate-y-[-5px]">
+                    <div id="loginError" class="hidden transform transition-all duration-300 bg-red-100/20 backdrop-blur border-l-4 border-red-500 text-red-100 p-4 rounded-lg mb-6"></div>
+                    
+                    <form id="loginForm" class="space-y-6">
+                        <div class="space-y-2">
+                            <label for="username" class="block text-sm font-medium text-white/90">Username or Email</label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white/50 group-hover:text-white/90 transition-colors" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                    </svg>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    id="username" 
+                                    class="pl-10 w-full rounded-xl modern-input text-white placeholder-white/50 bg-white/10"
+                                    required
+                                    placeholder="Enter your email"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="password" class="block text-sm font-medium text-white/90">Password</label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white/50 group-hover:text-white/90 transition-colors" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <input 
+                                    type="password" 
+                                    id="password" 
+                                    class="pl-10 w-full rounded-xl modern-input text-white placeholder-white/50 bg-white/10"
+                                    required
+                                    placeholder="Enter your password"
+                                >
+                            </div>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            class="w-full py-3 rounded-xl font-medium transform-gpu transition-all duration-300 neu-button text-white/90 hover:text-white"
+                        >
+                            Sign in
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Particle Effect Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create particles
+            for(let i = 0; i < 50; i++) {
+                createParticle();
+            }
+
+            function createParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                document.body.appendChild(particle);
+
+                // Random position
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * window.innerHeight;
+                
+                // Animation
+                gsap.set(particle, {
+                    x: x,
+                    y: y,
+                    scale: Math.random() * 1 + 0.5,
+                });
+                
+                gsap.to(particle, {
+                    y: y - 100,
+                    x: x + (Math.random() - 0.5) * 100,
+                    duration: Math.random() * 2 + 2,
+                    opacity: 0,
+                    ease: "power1.out",
+                    onComplete: () => {
+                        particle.remove();
+                        createParticle();
+                    }
+                });
+            }
+        });
+    </script>
 
     <!-- Firebase Core and Services -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>

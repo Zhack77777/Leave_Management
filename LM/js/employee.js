@@ -1,3 +1,25 @@
+// employee.js
+
+// Helper function for notifications (to match admin.js style)
+function showNotification(options) {
+    return Swal.fire({
+        title: options.title,
+        text: options.text,
+        icon: options.icon || 'success',
+        toast: options.toast || false,
+        position: options.position || 'top-end',
+        showConfirmButton: options.showConfirmButton !== undefined ? options.showConfirmButton : false,
+        timer: options.timer || 3000,
+        timerProgressBar: true,
+        showCancelButton: options.showCancelButton || false,
+        confirmButtonText: options.confirmButtonText || 'OK',
+        cancelButtonText: options.cancelButtonText || 'Cancel',
+        customClass: {
+            popup: 'animated fadeInDown'
+        }
+    });
+}
+
 // Employee-specific functions
 function loadApplyLeave() {
     const auth = window.firebaseShared.getAuth();
@@ -100,11 +122,20 @@ function loadApplyLeave() {
             };
             
             await database.ref('leave_requests').push(leaveRequest);
-            alert('Leave request submitted successfully');
+            showNotification({
+                title: 'Success',
+                text: 'Leave request submitted successfully',
+                icon: 'success',
+                toast: true
+            });
             document.getElementById('leaveApplicationForm').reset();
         } catch (error) {
             console.error('Error submitting leave request:', error);
-            alert('Error submitting leave request: ' + error.message);
+            showNotification({
+                title: 'Error',
+                text: 'Error submitting leave request: ' + error.message,
+                icon: 'error'
+            });
         }
     });
 }
@@ -200,18 +231,276 @@ function cancelLeaveRequest(requestId) {
     const user = auth.currentUser;
     if (!user) return;
     
-    if (confirm('Are you sure you want to cancel this leave request?')) {
-        database.ref('leave_requests/' + requestId).update({
-            status: 'cancelled',
-            updatedAt: firebase.database.ServerValue.TIMESTAMP
-        }).then(() => {
-            alert('Leave request cancelled successfully');
-            loadLeaveStatus();
-        }).catch(error => {
-            console.error('Error cancelling leave request:', error);
-            alert('Error cancelling leave request: ' + error.message);
+    showNotification({
+        title: 'Are you sure?',
+        text: 'Do you want to cancel this leave request?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, cancel it!',
+        cancelButtonText: 'No, keep it'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            database.ref('leave_requests/' + requestId).update({
+                status: 'cancelled',
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                showNotification({
+                    title: 'Success',
+                    text: 'Leave request cancelled successfully',
+                    icon: 'success',
+                    toast: true
+                });
+                loadLeaveStatus();
+            }).catch(error => {
+                console.error('Error cancelling leave request:', error);
+                showNotification({
+                    title: 'Error',
+                    text: 'Error cancelling leave request: ' + error.message,
+                    icon: 'error'
+                });
+            });
+        }
+    });
+}
+
+function loadTimeClock() {
+    const auth = window.firebaseShared.getAuth();
+    const database = window.firebaseShared.getDatabase();
+    const user = auth.currentUser;
+    if (!user) {
+        showNotification({
+            title: 'Error',
+            text: 'User not authenticated',
+            icon: 'error'
         });
+        return;
     }
+
+    const html = `
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>Time Clock</h4>
+                        <button id="clockButton" class="btn btn-primary" disabled>Loading...</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info" id="locationStatus">
+                            Detecting your location...
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Type</th>
+                                        <th>Location</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="timeClockTable">
+                                    <tr>
+                                        <td colspan="4" class="text-center">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('dashboardContent').innerHTML = html;
+
+    // Function to get geolocation
+    const getLocation = () => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by your browser'));
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    reject(error);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
+    };
+
+    // Function to reverse geocode coordinates (using OpenStreetMap Nominatim)
+    const reverseGeocode = async (latitude, longitude) => {
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+            );
+            const data = await response.json();
+            return data.display_name || `${latitude}, ${longitude}`;
+        } catch (error) {
+            console.error('Error reverse geocoding:', error);
+            return `${latitude}, ${longitude}`;
+        }
+    };
+
+    // Check last clock event to determine button state
+    const updateClockButton = async () => {
+        try {
+            const snapshot = await database
+                .ref('time_clock')
+                .orderByChild('userId')
+                .equalTo(user.uid)
+                .limitToLast(1)
+                .once('value');
+
+            const clockButton = document.getElementById('clockButton');
+            let isClockedIn = false;
+
+            if (snapshot.exists()) {
+                snapshot.forEach((child) => {
+                    const event = child.val();
+                    isClockedIn = event.type === 'in';
+                });
+            }
+
+            clockButton.textContent = isClockedIn ? 'Clock Out' : 'Clock In';
+            clockButton.className = isClockedIn ? 'btn btn-danger' : 'btn btn-success';
+            clockButton.disabled = false;
+        } catch (error) {
+            console.error('Error checking clock status:', error);
+            showNotification({
+                title: 'Error',
+                text: 'Error checking clock status',
+                icon: 'error'
+            });
+            document.getElementById('clockButton').disabled = true;
+        }
+    };
+
+    // Load clock history
+    const loadClockHistory = async () => {
+        try {
+            const snapshot = await database
+                .ref('time_clock')
+                .orderByChild('userId')
+                .equalTo(user.uid)
+                .limitToLast(50) // Limit to last 50 entries
+                .once('value');
+
+            const tableBody = document.getElementById('timeClockTable');
+            tableBody.innerHTML = '';
+
+            if (!snapshot.exists()) {
+                tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No clock records found</td></tr>';
+                return;
+            }
+
+            const entries = [];
+            snapshot.forEach((child) => {
+                entries.push({ key: child.key, ...child.val() });
+            });
+
+            // Sort by timestamp descending
+            entries.sort((a, b) => b.timestamp - a.timestamp);
+
+            entries.forEach((entry) => {
+                const date = new Date(entry.timestamp);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                    <td>${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${entry.type === 'in' ? 'Clock In' : 'Clock Out'}</td>
+                    <td>${entry.address || `${entry.latitude}, ${entry.longitude}`}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error loading clock history:', error);
+            document.getElementById('timeClockTable').innerHTML =
+                '<tr><td colspan="4" class="text-center text-danger">Error loading clock records</td></tr>';
+        }
+    };
+
+    // Initialize location and UI
+    getLocation()
+        .then(async (coords) => {
+            const address = await reverseGeocode(coords.latitude, coords.longitude);
+            document.getElementById('locationStatus').innerHTML = `Location: ${address}`;
+            document.getElementById('locationStatus').className = 'alert alert-success';
+            await updateClockButton();
+            await loadClockHistory();
+        })
+        .catch((error) => {
+            console.error('Geolocation error:', error);
+            document.getElementById('locationStatus').innerHTML =
+                'Unable to detect location. Please enable location services.';
+            document.getElementById('locationStatus').className = 'alert alert-warning';
+            document.getElementById('clockButton').disabled = true;
+        });
+
+    // Handle clock in/out
+    document.getElementById('clockButton')?.addEventListener('click', async () => {
+        const clockButton = document.getElementById('clockButton');
+        clockButton.disabled = true;
+
+        try {
+            const coords = await getLocation();
+            const address = await reverseGeocode(coords.latitude, coords.longitude);
+
+            // Determine if clocking in or out
+            const lastEventSnapshot = await database
+                .ref('time_clock')
+                .orderByChild('userId')
+                .equalTo(user.uid)
+                .limitToLast(1)
+                .once('value');
+
+            let isClockedIn = false;
+            if (lastEventSnapshot.exists()) {
+                lastEventSnapshot.forEach((child) => {
+                    isClockedIn = child.val().type === 'in';
+                });
+            }
+
+            const clockType = isClockedIn ? 'out' : 'in';
+
+            // Save clock event
+            await database.ref('time_clock').push({
+                userId: user.uid,
+                type: clockType,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                address: address
+            });
+
+            showNotification({
+                title: 'Success',
+                text: `Successfully clocked ${clockType}`,
+                icon: 'success',
+                toast: true
+            });
+
+            // Update UI
+            document.getElementById('locationStatus').innerHTML = `Location: ${address}`;
+            await updateClockButton();
+            await loadClockHistory();
+        } catch (error) {
+            console.error('Error clocking:', error);
+            showNotification({
+                title: 'Error',
+                text: 'Error processing clock event: ' + error.message,
+                icon: 'error'
+            });
+        } finally {
+            clockButton.disabled = false;
+        }
+    });
 }
 
 function calculateDays(startDate, endDate) {
