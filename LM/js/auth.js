@@ -1,4 +1,5 @@
 // Wait for Firebase and shared module to be ready
+//auth.js
 function waitForFirebase() {
     return new Promise((resolve, reject) => {
         const checkFirebase = () => {
@@ -35,9 +36,18 @@ async function initializeAuth() {
         async function createTestUserData(uid, role) {
             console.log(`Creating test user data for ${role}...`);
             const userData = {
-                name: role.charAt(0).toUpperCase() + role.slice(1),
-                role: role.toUpperCase(),
+                name: role.charAt(0).toUpperCase() + role.slice(1), // e.g., "Admin"
+                role: role.toLowerCase(), // Use lowercase: "admin"
                 email: testAccounts[role].email,
+                department: role === 'admin' ? 'Administration' : 'Not Assigned',
+                employeeId: `TST${Date.now()}`, // Unique ID for test accounts
+                jobTitle: role === 'admin' ? 'System Administrator' : `${role.charAt(0).toUpperCase() + role.slice(1)}`,
+                phone: '+1234567890', // Default phone
+                location: 'Main Office',
+                startDate: new Date().toISOString().split('T')[0], // Current date
+                employmentType: 'full-time',
+                manager: 'N/A',
+                profilePicture: null, // Optional: Add a default URL if needed
                 createdAt: firebase.database.ServerValue.TIMESTAMP,
                 isTestAccount: true
             };
@@ -65,7 +75,7 @@ async function initializeAuth() {
                     
                     // Verify user data exists and is correct
                     const snapshot = await database.ref('users/' + userCredential.user.uid).once('value');
-                    if (!snapshot.exists() || snapshot.val().role !== role.toUpperCase()) {
+                    if (!snapshot.exists() || snapshot.val().role !== role.toLowerCase()) {
                         console.log(`Updating ${role} account data...`);
                         await createTestUserData(userCredential.user.uid, role);
                     }
@@ -139,8 +149,6 @@ async function initializeAuth() {
                         }
                     }
 
-                    // Wait for data to be saved and verified
-                    await new Promise(resolve => setTimeout(resolve, 1500));
                     await handleSuccessfulLogin();
                 } catch (error) {
                     console.error('Login error:', error);
@@ -210,8 +218,8 @@ async function initializeAuth() {
 
         // After successful login, check for redirect URL
         async function handleSuccessfulLogin() {
+            console.log('Login successful, redirecting...');
             const redirectUrl = sessionStorage.getItem('redirectUrl');
-            console.log('Checking redirect URL:', redirectUrl);
             if (redirectUrl && redirectUrl.includes('dashboard.html')) {
                 sessionStorage.removeItem('redirectUrl');
                 window.location.href = redirectUrl;
@@ -223,25 +231,34 @@ async function initializeAuth() {
         // Setup dashboard
         async function setupDashboard(user) {
             try {
+                console.log('Setting up dashboard for user:', user.uid);
                 const snapshot = await database.ref('users/' + user.uid).once('value');
                 const userData = snapshot.val();
                 
                 if (userData) {
-                    console.log("User data loaded:", userData);
+                    console.log('User data fetched:', userData);
                     
                     // Store user role in session storage for persistence
                     sessionStorage.setItem('userRole', userData.role.toLowerCase());
                     
-                    // Update UI with user info
-                    const userNameElement = document.getElementById('currentUserName');
-                    const userRoleElement = document.getElementById('currentUserRole');
-                    const sidebarUserName = document.getElementById('sidebarUserName');
-                    const sidebarUserRole = document.getElementById('sidebarUserRole');
-                    
-                    if (userNameElement) userNameElement.textContent = userData.name;
-                    if (userRoleElement) userRoleElement.textContent = userData.role;
-                    if (sidebarUserName) sidebarUserName.textContent = userData.name;
-                    if (sidebarUserRole) sidebarUserRole.textContent = userData.role;
+                    // Call updateSidebarProfile to update sidebar UI
+                    if (typeof updateSidebarProfile === 'function') {
+                        updateSidebarProfile(userData);
+                    } else {
+                        console.warn('updateSidebarProfile function not found');
+                        // Fallback: Update UI directly
+                        const userNameElement = document.getElementById('currentUserName');
+                        const userRoleElement = document.getElementById('currentUserRole');
+                        const sidebarUserName = document.getElementById('sidebarUserName');
+                        const sidebarUserRole = document.getElementById('sidebarUserRole');
+                        const sidebarUserDepartment = document.getElementById('sidebarUserDepartment');
+
+                        if (userNameElement) userNameElement.textContent = userData.name || 'Unknown';
+                        if (userRoleElement) userRoleElement.textContent = userData.role || 'No Role';
+                        if (sidebarUserName) sidebarUserName.textContent = userData.name || 'Unknown';
+                        if (sidebarUserRole) sidebarUserRole.textContent = userData.role || 'No Role';
+                        if (sidebarUserDepartment) sidebarUserDepartment.textContent = userData.department || 'No Department';
+                    }
                     
                     // Show/hide sections based on role
                     const role = userData.role.toLowerCase();
@@ -272,13 +289,15 @@ async function initializeAuth() {
                         initDashboard();
                     }
                 } else {
-                    console.error("No user data found in setupDashboard");
+                    console.error('No user data found for UID:', user.uid);
                     await auth.signOut();
+                    sessionStorage.clear();
                     window.location.href = 'index.html';
                 }
             } catch (error) {
-                console.error("Error setting up dashboard:", error);
+                console.error('Error setting up dashboard:', error);
                 await auth.signOut();
+                sessionStorage.clear();
                 window.location.href = 'index.html';
             }
         }
@@ -289,9 +308,10 @@ async function initializeAuth() {
             logoutBtn.addEventListener('click', async () => {
                 try {
                     await auth.signOut();
+                    sessionStorage.clear();
                     window.location.href = 'index.html';
                 } catch (error) {
-                    console.error("Error signing out:", error);
+                    console.error('Error signing out:', error);
                 }
             });
         }

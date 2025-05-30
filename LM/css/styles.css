@@ -170,3 +170,178 @@ body {
     z-index: 1001;
     cursor: pointer;
 }
+
+/* Profile Styles */
+.avatar-circle {
+    width: 100px;
+    height: 100px;
+    background-color: #4f46e5;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.avatar-initials {
+    color: white;
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.info-card {
+    background-color: #f8fafc;
+    border-radius: 10px;
+    padding: 1.5rem;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.info-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.info-card-title {
+    color: #4f46e5;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+#profileBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+#profileBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#profileBtn .fas {
+    font-size: 1.2rem;
+}
+
+/* Sidebar Profile Styles */
+.sidebar-profile {
+    padding: 1rem;
+    text-align: center;
+    color: #fff;
+}
+
+.sidebar-avatar {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    position: relative;
+}
+
+.sidebar-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.sidebar-avatar .avatar-initials {
+    font-size: 1.5rem;
+    color: #fff;
+    z-index: 1;
+}
+
+.sidebar-user-info h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-user-info p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+/* When sidebar is collapsed */
+#sidebar.active .sidebar-profile {
+    padding: 0.5rem;
+}
+
+#sidebar.active .sidebar-avatar {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0;
+}
+
+#sidebar.active .sidebar-avatar .avatar-initials {
+    font-size: 1.2rem;
+}
+
+#sidebar.active .sidebar-user-info {
+    display: none;
+}
+
+/* Profile Picture Styles */
+.profile-picture-container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+}
+
+.profile-picture-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.profile-picture-overlay {
+    opacity: 0;
+    background: rgba(0, 0, 0, 0.5);
+    transition: opacity 0.3s ease;
+}
+
+.profile-picture-container:hover .profile-picture-overlay {
+    opacity: 1;
+}
+
+.upload-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-btn:hover {
+    transform: scale(1.1);
+}
+
+.avatar-circle {
+    overflow: hidden;
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
