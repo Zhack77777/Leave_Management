@@ -1,4 +1,5 @@
 // Wait for Firebase and shared module to be ready
+//admin.js
 function waitForFirebase() {
     return new Promise((resolve, reject) => {
         const checkFirebase = () => {

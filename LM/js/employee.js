@@ -1,4 +1,5 @@
 // Employee-specific functions
+//employee.js
 function loadApplyLeave() {
     const auth = window.firebaseShared.getAuth();
     const database = window.firebaseShared.getDatabase();
