@@ -1,4 +1,4 @@
-//script.js
+// script.js
 
 // Wait for Firebase and shared module to be ready
 function waitForFirebase() {
@@ -351,6 +351,9 @@ function loadSection() {
             case 'dashboard':
                 loadDashboard();
                 break;
+            case 'time-clock':
+                loadTimeClock();
+                break;
             case 'apply-leave':
                 loadApplyLeave();
                 break;
@@ -612,11 +615,11 @@ function loadAdminDashboardData() {
 
 // Placeholder functions for other sections
 function loadApplyLeave() {
-    // Implementation for apply leave form
+    // Implementation in employee.js
 }
 
 function loadLeaveStatus() {
-    // Implementation for leave status
+    // Implementation in employee.js
 }
 
 function loadTeamCalendar() {
@@ -733,29 +736,33 @@ function loadTeamCalendar() {
 }
 
 function loadApprovals() {
-    // Implementation for approvals
+    // Implementation in manager.js
 }
 
 function loadTeamLeave() {
-    // Implementation for team leave
+    // Implementation in manager.js or admin.js
 }
 
 function loadUserManagement() {
-    // Implementation for user management
+    // Implementation in admin.js
+}
+
+function loadEmployeeDirectory() {
+    // Implementation in admin.js
 }
 
 function loadLeaveTypes() {
-    // Implementation for leave types
+    // Implementation in admin.js
 }
 
 function loadAssignLeave() {
-    // Implementation for assign leave
+    // Implementation in admin.js
 }
 
 function loadCompanyHolidays() {
-    // Implementation for company holidays
+    // Implementation in admin.js
 }
 
 function loadReports() {
-    // Implementation for reports
+    // Implementation in admin.js
 }
