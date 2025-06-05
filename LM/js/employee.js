@@ -68,11 +68,10 @@ function loadApplyLeave() {
     
     // Load leave types
     const leaveTypeSelect = document.getElementById('leaveType');
-    const loadedTypes = new Set(); // Keep track of loaded types to prevent duplicates
+    const loadedTypes = new Set();
     
     database.ref('leave_types').once('value').then(snapshot => {
         if (snapshot.exists()) {
-            // Clear any existing options except the default one
             while (leaveTypeSelect.options.length > 1) {
                 leaveTypeSelect.remove(1);
             }
@@ -81,7 +80,6 @@ function loadApplyLeave() {
                 const typeData = type.val();
                 const typeId = type.key;
                 
-                // Check if this type has already been added
                 if (!loadedTypes.has(typeId)) {
                     const option = document.createElement('option');
                     option.value = typeId;
@@ -108,14 +106,26 @@ function loadApplyLeave() {
             
             // Get the leave type name
             const leaveTypeSnapshot = await database.ref('leave_types/' + leaveTypeId).once('value');
-            const leaveTypeName = leaveTypeSnapshot.val()?.name || 'Unknown';
+            if (!leaveTypeSnapshot.exists()) throw new Error('Invalid leave type');
+            const leaveTypeName = leaveTypeSnapshot.val().name;
+            
+            // Get the user's name
+            const userSnapshot = await database.ref('users/' + user.uid).once('value');
+            if (!userSnapshot.exists()) throw new Error('User data not found');
+            const employeeName = userSnapshot.val().name;
+            
+            // Calculate days
+            const days = calculateDays(startDate, endDate);
+            if (days <= 0) throw new Error('End date must be on or after start date');
             
             const leaveRequest = {
                 userId: user.uid,
                 startDate: startDate,
                 endDate: endDate,
                 leaveTypeId: leaveTypeId,
-                leaveTypeName: leaveTypeName, // Store both ID and name
+                leaveTypeName: leaveTypeName,
+                employeeName: employeeName,
+                days: days,
                 reason: reason,
                 status: 'pending',
                 createdAt: firebase.database.ServerValue.TIMESTAMP
@@ -276,6 +286,16 @@ function loadTimeClock() {
         return;
     }
 
+    // Debug: log the user role from the database
+    database.ref('users/' + user.uid).once('value').then(snapshot => {
+        const userData = snapshot.val();
+        if (userData && userData.role) {
+            console.log('Employee userData.role:', userData.role);
+        } else {
+            console.log('Employee userData.role: not found or undefined', userData);
+        }
+    });
+
     const html = `
         <div class="row">
             <div class="col-md-12">
@@ -359,6 +379,7 @@ function loadTimeClock() {
                 .once('value');
 
             const clockButton = document.getElementById('clockButton');
+            if (!clockButton) return;
             let isClockedIn = false;
 
             if (snapshot.exists()) {
@@ -378,7 +399,8 @@ function loadTimeClock() {
                 text: 'Error checking clock status',
                 icon: 'error'
             });
-            document.getElementById('clockButton').disabled = true;
+            const clockButton = document.getElementById('clockButton');
+            if (clockButton) clockButton.disabled = true;
         }
     };
 
@@ -393,6 +415,7 @@ function loadTimeClock() {
                 .once('value');
 
             const tableBody = document.getElementById('timeClockTable');
+            if (!tableBody) return;
             tableBody.innerHTML = '';
 
             if (!snapshot.exists()) {
@@ -421,8 +444,8 @@ function loadTimeClock() {
             });
         } catch (error) {
             console.error('Error loading clock history:', error);
-            document.getElementById('timeClockTable').innerHTML =
-                '<tr><td colspan="4" class="text-center text-danger">Error loading clock records</td></tr>';
+            const tableBody = document.getElementById('timeClockTable');
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading clock records</td></tr>';
         }
     };
 
@@ -430,17 +453,23 @@ function loadTimeClock() {
     getLocation()
         .then(async (coords) => {
             const address = await reverseGeocode(coords.latitude, coords.longitude);
-            document.getElementById('locationStatus').innerHTML = `Location: ${address}`;
-            document.getElementById('locationStatus').className = 'alert alert-success';
+            const locationStatusElem = document.getElementById('locationStatus');
+            if (locationStatusElem) {
+                locationStatusElem.innerHTML = `Location: ${address}`;
+                locationStatusElem.className = 'alert alert-success';
+            }
             await updateClockButton();
             await loadClockHistory();
         })
         .catch((error) => {
             console.error('Geolocation error:', error);
-            document.getElementById('locationStatus').innerHTML =
-                'Unable to detect location. Please enable location services.';
-            document.getElementById('locationStatus').className = 'alert alert-warning';
-            document.getElementById('clockButton').disabled = true;
+            const locationStatusElem = document.getElementById('locationStatus');
+            if (locationStatusElem) {
+                locationStatusElem.innerHTML = 'Unable to detect location. Please enable location services.';
+                locationStatusElem.className = 'alert alert-warning';
+            }
+            const clockButton = document.getElementById('clockButton');
+            if (clockButton) clockButton.disabled = true;
         });
 
     // Handle clock in/out
