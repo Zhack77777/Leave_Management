@@ -68,11 +68,10 @@ function loadApplyLeave() {
     
     // Load leave types
     const leaveTypeSelect = document.getElementById('leaveType');
-    const loadedTypes = new Set(); // Keep track of loaded types to prevent duplicates
+    const loadedTypes = new Set();
     
     database.ref('leave_types').once('value').then(snapshot => {
         if (snapshot.exists()) {
-            // Clear any existing options except the default one
             while (leaveTypeSelect.options.length > 1) {
                 leaveTypeSelect.remove(1);
             }
@@ -81,7 +80,6 @@ function loadApplyLeave() {
                 const typeData = type.val();
                 const typeId = type.key;
                 
-                // Check if this type has already been added
                 if (!loadedTypes.has(typeId)) {
                     const option = document.createElement('option');
                     option.value = typeId;
@@ -108,14 +106,26 @@ function loadApplyLeave() {
             
             // Get the leave type name
             const leaveTypeSnapshot = await database.ref('leave_types/' + leaveTypeId).once('value');
-            const leaveTypeName = leaveTypeSnapshot.val()?.name || 'Unknown';
+            if (!leaveTypeSnapshot.exists()) throw new Error('Invalid leave type');
+            const leaveTypeName = leaveTypeSnapshot.val().name;
+            
+            // Get the user's name
+            const userSnapshot = await database.ref('users/' + user.uid).once('value');
+            if (!userSnapshot.exists()) throw new Error('User data not found');
+            const employeeName = userSnapshot.val().name;
+            
+            // Calculate days
+            const days = calculateDays(startDate, endDate);
+            if (days <= 0) throw new Error('End date must be on or after start date');
             
             const leaveRequest = {
                 userId: user.uid,
                 startDate: startDate,
                 endDate: endDate,
                 leaveTypeId: leaveTypeId,
-                leaveTypeName: leaveTypeName, // Store both ID and name
+                leaveTypeName: leaveTypeName,
+                employeeName: employeeName,
+                days: days,
                 reason: reason,
                 status: 'pending',
                 createdAt: firebase.database.ServerValue.TIMESTAMP
