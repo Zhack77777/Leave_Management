@@ -482,20 +482,21 @@ function adminDashboardHTML() {
 
 // Dashboard loading functions
 function loadDashboard() {
+    console.log('loadDashboard called');
     const user = firebase.auth().currentUser;
     if (!user) return;
     
     const database = window.firebaseShared.getDatabase();
     if (!database) return;
     
-    // Get role from session storage or window object
-    const role = window.userRole || sessionStorage.getItem('userRole') || 'employee';
-    console.log('Loading dashboard for role:', role);
-    
     database.ref('users/' + user.uid).once('value')
         .then(snapshot => {
             const userData = snapshot.val();
             if (!userData) return;
+            
+            // Use role from userData if available, otherwise fallback
+            const role = (userData.role || window.userRole || sessionStorage.getItem('userRole') || 'employee').toString().trim().toLowerCase();
+            console.log('UserData.role:', userData.role, '| Normalized role:', role, '| typeof:', typeof role);
             
             // Update sidebar profile
             updateSidebarProfile(userData);
@@ -516,17 +517,24 @@ function loadDashboard() {
             
             // Use the role to determine which dashboard to show
             if (role === 'admin') {
+                console.log('Rendering admin dashboard');
                 html += adminDashboardHTML();
                 dashboardContent.innerHTML = html;
                 loadAdminDashboardData();
             } else if (role === 'manager') {
+                console.log('Rendering manager dashboard');
                 html += managerDashboardHTML();
                 dashboardContent.innerHTML = html;
                 loadManagerDashboardData(user.uid);
-            } else {
+            } else if (role === 'employee' || role === 'user') {
+                console.log('Rendering employee dashboard');
                 html += employeeDashboardHTML();
                 dashboardContent.innerHTML = html;
                 loadEmployeeDashboardData(user.uid);
+            } else {
+                console.log('Rendering access denied branch');
+                console.trace();
+                dashboardContent.innerHTML = '<div class="alert alert-danger">Access denied. Admins only.</div>';
             }
         })
         .catch(error => {
@@ -556,8 +564,8 @@ function loadEmployeeDashboardData(userId) {
                 }
             });
         }
-        
-        document.getElementById('availableLeave').textContent = totalRemaining;
+        const availableLeaveElem = document.getElementById('availableLeave');
+        if (availableLeaveElem) availableLeaveElem.textContent = totalRemaining;
     });
     
     // Get upcoming leaves
@@ -575,9 +583,10 @@ function loadEmployeeDashboardData(userId) {
                     pending++;
                 }
             });
-            
-            document.getElementById('upcomingLeaves').textContent = upcoming;
-            document.getElementById('pendingRequests').textContent = pending;
+            const upcomingLeavesElem = document.getElementById('upcomingLeaves');
+            if (upcomingLeavesElem) upcomingLeavesElem.textContent = upcoming;
+            const pendingRequestsElem = document.getElementById('pendingRequests');
+            if (pendingRequestsElem) pendingRequestsElem.textContent = pending;
         });
 }
 
@@ -588,13 +597,15 @@ function loadManagerDashboardData(userId) {
     
     database.ref('leave_requests').orderByChild('status').equalTo('pending')
         .once('value').then(snapshot => {
-            document.getElementById('pendingApprovals').textContent = snapshot.numChildren();
+            const pendingApprovalsElem = document.getElementById('pendingApprovals');
+            if (pendingApprovalsElem) pendingApprovalsElem.textContent = snapshot.numChildren();
         });
     
     // Get team members count
     database.ref('users').orderByChild('managerId').equalTo(userId)
         .once('value').then(snapshot => {
-            document.getElementById('teamMembers').textContent = snapshot.numChildren();
+            const teamMembersElem = document.getElementById('teamMembers');
+            if (teamMembersElem) teamMembersElem.textContent = snapshot.numChildren();
         });
 }
 
@@ -604,12 +615,14 @@ function loadAdminDashboardData() {
     if (!database) return;
     
     database.ref('users').once('value').then(snapshot => {
-        document.getElementById('totalUsers').textContent = snapshot.numChildren();
+        const totalUsersElem = document.getElementById('totalUsers');
+        if (totalUsersElem) totalUsersElem.textContent = snapshot.numChildren();
     });
     
     // Get active requests
     database.ref('leave_requests').once('value').then(snapshot => {
-        document.getElementById('activeRequests').textContent = snapshot.numChildren();
+        const activeRequestsElem = document.getElementById('activeRequests');
+        if (activeRequestsElem) activeRequestsElem.textContent = snapshot.numChildren();
     });
 }
 
@@ -766,3 +779,20 @@ function loadCompanyHolidays() {
 function loadReports() {
     // Implementation in admin.js
 }
+
+// Add this at the end of your main script.js or after Firebase is initialized
+waitForFirebase().then(() => {
+    const auth = window.firebaseShared.getAuth();
+    auth.onAuthStateChanged(function(user) {
+        if (user) {
+            loadSection();
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: 'User not authenticated',
+                icon: 'error'
+            });
+            window.location.href = 'index.html';
+        }
+    });
+});
