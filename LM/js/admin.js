@@ -1,3 +1,6 @@
+// admin.js
+// Admin dashboard functionality for leave management system
+
 // Wait for Firebase and shared module to be ready
 function waitForFirebase() {
     return new Promise((resolve, reject) => {
@@ -20,13 +23,35 @@ function waitForFirebase() {
 // Initialize Firebase instances
 let auth;
 let database;
+let isInitialized = false;
 
 waitForFirebase().then(instances => {
     auth = instances.auth;
     database = instances.database;
     console.log('Firebase instances initialized in admin.js');
+    if (!isInitialized) {
+        // Only set up the auth state listener once
+        isInitialized = true;
+        auth.onAuthStateChanged(function(user) {
+            if (user) {
+                initializeAdminDashboard();
+            } else {
+                showNotification({
+                    title: 'Error',
+                    text: 'User not authenticated',
+                    icon: 'error'
+                });
+                document.getElementById('dashboardContent').innerHTML = '<div class="alert alert-danger">Please log in.</div>';
+            }
+        });
+    }
 }).catch(error => {
     console.error('Error initializing Firebase in admin.js:', error);
+    showNotification({
+        title: 'Error',
+        text: 'Error initializing Firebase: ' + error.message,
+        icon: 'error'
+    });
 });
 
 // Helper function for notifications
@@ -103,7 +128,76 @@ function validateUserData(data) {
     return null; // Data is valid
 }
 
-// Admin-specific functions
+// Initialize admin dashboard
+function initializeAdminDashboard() {
+    if (!auth.currentUser) {
+        showNotification({
+            title: 'Error',
+            text: 'User not authenticated',
+            icon: 'error'
+        });
+        document.getElementById('dashboardContent').innerHTML = '<div class="alert alert-danger">Please log in.</div>';
+        return;
+    }
+
+    // Verify admin role
+    database.ref(`users/${auth.currentUser.uid}/role`).once('value')
+        .then(snapshot => {
+            const role = snapshot.val();
+            if (role !== 'admin') {
+                showNotification({
+                    title: 'Error',
+                    text: 'Access denied. Admins only.',
+                    icon: 'error'
+                });
+                document.getElementById('dashboardContent').innerHTML = '<div class="alert alert-danger">Access denied. Admins only.</div>';
+                return;
+            }
+
+            // Load default view
+            loadUserManagement();
+
+            // Set up navigation listeners
+            document.querySelectorAll('[data-section]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const section = e.target.getAttribute('data-section');
+                    switch (section) {
+                        case 'users':
+                            loadUserManagement();
+                            break;
+                        case 'leave-types':
+                            loadLeaveTypes();
+                            break;
+                        case 'assign-leave':
+                            loadAssignLeave();
+                            break;
+                        case 'holidays':
+                            loadCompanyHolidays();
+                            break;
+                        case 'reports':
+                            loadReports();
+                            break;
+                        case 'directory':
+                            loadEmployeeDirectory();
+                            break;
+                        default:
+                            loadUserManagement();
+                    }
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Error verifying admin role:', error);
+            showNotification({
+                title: 'Error',
+                text: 'Error verifying admin role: ' + error.message,
+                icon: 'error'
+            });
+        });
+}
+
+// User Management
 function loadUserManagement() {
     const html = `
         <div class="row">
@@ -188,7 +282,7 @@ function loadUserManagement() {
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="employeePhone" class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control" id="employeePhone" required>
+                                    <input type="tel" class="form-control" id="employeePhone">
                                 </div>
                             </div>
                             <div class="row">
@@ -211,7 +305,7 @@ function loadUserManagement() {
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="employeeManager" class="form-label">Manager / Supervisor Name</label>
-                                    <input type="text" class="form-control" id="employeeManager" required>
+                                    <input type="text" class="form-control" id="employeeManager">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="employeeStartDate" class="form-label">Date of Hire</label>
@@ -245,7 +339,7 @@ function loadUserManagement() {
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="employeePassword" class="form-label">Password</label>
-                                    <input type="password" class="form-control" id="employeePassword" required>
+                                    <input type="password" class="form-control" id="employeePassword" required minlength="6">
                                 </div>
                             </div>
                             <div class="d-grid gap-2">
@@ -277,7 +371,7 @@ function loadUserManagement() {
                             </div>
                             <div class="mb-3">
                                 <label for="newUserPassword" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="newUserPassword" required>
+                                <input type="password" class="form-control" id="newUserPassword" required minlength="6">
                             </div>
                             <div class="mb-3">
                                 <label for="newUserRole" class="form-label">Role</label>
@@ -396,11 +490,12 @@ function loadUserManagement() {
 
     document.getElementById('dashboardContent').innerHTML = html;
 
-    // Load users and set up filter functionality
     let allUsers = [];
 
     database.ref('users').once('value').then(snapshot => {
         const tableBody = document.getElementById('usersTable');
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
 
         if (!snapshot.exists()) {
             tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
@@ -415,13 +510,17 @@ function loadUserManagement() {
 
         renderFilteredUsers(allUsers);
 
-        document.getElementById('departmentFilter').addEventListener('change', (e) => {
+        const departmentFilter = document.getElementById('departmentFilter');
+        departmentFilter.removeEventListener('change', handleDepartmentFilter);
+        departmentFilter.addEventListener('change', handleDepartmentFilter);
+
+        function handleDepartmentFilter(e) {
             const selectedDepartment = e.target.value;
             const filteredUsers = selectedDepartment === 'all'
                 ? allUsers
                 : allUsers.filter(user => user.department === selectedDepartment);
             renderFilteredUsers(filteredUsers);
-        });
+        }
     }).catch(error => {
         console.error('Error loading users:', error);
         showNotification({
@@ -431,18 +530,35 @@ function loadUserManagement() {
         });
     });
 
-    // Add employee form submission
-    document.getElementById('addEmployeeForm')?.addEventListener('submit', async (e) => {
+    const addEmployeeForm = document.getElementById('addEmployeeForm');
+    if (addEmployeeForm) {
+        addEmployeeForm.removeEventListener('submit', handleAddEmployee);
+        addEmployeeForm.addEventListener('submit', handleAddEmployee);
+    }
+
+    const addUserForm = document.getElementById('addUserForm');
+    if (addUserForm) {
+        addUserForm.removeEventListener('submit', handleAddUser);
+        addUserForm.addEventListener('submit', handleAddUser);
+    }
+
+    const editUserForm = document.getElementById('editUserForm');
+    if (editUserForm) {
+        editUserForm.removeEventListener('submit', saveUserChanges);
+        editUserForm.addEventListener('submit', saveUserChanges);
+    }
+
+    async function handleAddEmployee(e) {
         e.preventDefault();
 
         const employeeData = {
             name: document.getElementById('employeeFullName').value,
             employeeId: document.getElementById('employeeId').value,
             email: document.getElementById('employeeEmail').value,
-            phone: document.getElementById('employeePhone').value,
+            phone: document.getElementById('employeePhone').value || null,
             jobTitle: document.getElementById('employeeJobTitle').value,
             department: document.getElementById('employeeDepartment').value,
-            manager: document.getElementById('employeeManager').value,
+            manager: document.getElementById('employeeManager').value || null,
             startDate: document.getElementById('employeeStartDate').value,
             employmentType: document.getElementById('employeeType').value,
             location: document.getElementById('employeeLocation').value,
@@ -484,10 +600,9 @@ function loadUserManagement() {
                 icon: 'error'
             });
         }
-    });
+    }
 
-    // Add admin/manager form submission
-    document.getElementById('addUserForm')?.addEventListener('submit', async (e) => {
+    async function handleAddUser(e) {
         e.preventDefault();
 
         const userData = {
@@ -530,15 +645,12 @@ function loadUserManagement() {
                 icon: 'error'
             });
         }
-    });
-
-    // Add event listener for edit user form
-    document.getElementById('editUserForm')?.addEventListener('submit', saveUserChanges);
+    }
 }
 
-// Helper function to render filtered users
 function renderFilteredUsers(users) {
     const tableBody = document.getElementById('usersTable');
+    if (!tableBody) return;
     tableBody.innerHTML = '';
 
     if (users.length === 0) {
@@ -548,35 +660,28 @@ function renderFilteredUsers(users) {
 
     users.forEach(userData => {
         const row = document.createElement('tr');
-        row.innerHTML = renderUserRow(userData, userData.id);
+        row.innerHTML = `
+            <td>${userData.name}</td>
+            <td>${userData.employeeId || 'N/A'}</td>
+            <td>${userData.email}</td>
+            <td>${userData.department || 'Not assigned'}</td>
+            <td>${userData.role}</td>
+            <td>${userData.manager || 'Not assigned'}</td>
+            <td>
+                <button class="btn btn-sm btn-primary me-2" onclick="editUser('${userData.id}')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteUser('${userData.id}')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </td>
+        `;
         tableBody.appendChild(row);
     });
 }
 
-function renderUserRow(user, key) {
-    return `
-        <tr>
-            <td>${user.name}</td>
-            <td>${user.employeeId || 'N/A'}</td>
-            <td>${user.email}</td>
-            <td>${user.department || 'Not assigned'}</td>
-            <td>${user.role}</td>
-            <td>${user.manager || 'Not assigned'}</td>
-            <td>
-                <button class="btn btn-sm btn-primary me-2" onclick="editUser('${key}')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteUser('${key}')">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </td>
-        </tr>
-    `;
-}
-
 async function editUser(userId) {
     try {
-        const database = window.firebaseShared.getDatabase();
         const userSnapshot = await database.ref(`users/${userId}`).once('value');
         const userData = userSnapshot.val();
 
@@ -589,7 +694,6 @@ async function editUser(userId) {
             return;
         }
 
-        // Populate the edit modal with user data
         document.getElementById('editUserId').value = userId;
         document.getElementById('editUserName').value = userData.name || '';
         document.getElementById('editUserEmail').value = userData.email || '';
@@ -619,11 +723,8 @@ async function saveUserChanges(event) {
     event.preventDefault();
 
     const userId = document.getElementById('editUserId').value;
-    const database = window.firebaseShared.getDatabase();
 
-    // Check authentication
-    const user = auth.currentUser;
-    if (!user) {
+    if (!auth.currentUser) {
         showNotification({
             title: 'Error',
             text: 'No authenticated user found',
@@ -632,8 +733,7 @@ async function saveUserChanges(event) {
         return;
     }
 
-    // Verify admin role
-    const userSnapshot = await database.ref(`users/${user.uid}/role`).once('value');
+    const userSnapshot = await database.ref(`users/${auth.currentUser.uid}/role`).once('value');
     if (userSnapshot.val() !== 'admin') {
         showNotification({
             title: 'Error',
@@ -657,7 +757,6 @@ async function saveUserChanges(event) {
         manager: document.getElementById('editUserManager').value || null
     };
 
-    // Remove null or empty optional fields to avoid validation issues
     Object.keys(updatedUserData).forEach(key => {
         if (updatedUserData[key] === null || updatedUserData[key] === '') {
             delete updatedUserData[key];
@@ -675,7 +774,6 @@ async function saveUserChanges(event) {
     }
 
     try {
-        console.log('Updating user with data:', updatedUserData); // Debug log
         await database.ref(`users/${userId}`).update(updatedUserData);
         const editUserModal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
         editUserModal.hide();
@@ -728,6 +826,7 @@ async function deleteUser(userId) {
     });
 }
 
+// Leave Types Management
 function loadLeaveTypes() {
     const html = `
         <div class="row">
@@ -761,7 +860,7 @@ function loadLeaveTypes() {
             </div>
         </div>
 
-        <div class="modal fade" id="addLeaveTypeModal" tabindex="-1" role="dialog" aria-labelledby="addLeaveTypeModalLabel">
+        <div class="modal fade" id="addLeaveTypeModal" class="modal" tabindex="-1" aria-labelledby="addLeaveTypeModalLabel">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -791,30 +890,14 @@ function loadLeaveTypes() {
     document.getElementById('dashboardContent').innerHTML = html;
 
     const addLeaveTypeModal = document.getElementById('addLeaveTypeModal');
-    const modalInstance = new bootstrap.Modal(addLeaveTypeModal);
-
-    let previousActiveElement;
-
-    addLeaveTypeModal.addEventListener('show.bs.modal', function () {
-        previousActiveElement = document.activeElement;
-    });
-
-    addLeaveTypeModal.addEventListener('shown.bs.modal', function () {
-        document.getElementById('leaveTypeName').focus();
-    });
-
-    addLeaveTypeModal.addEventListener('hidden.bs.modal', function () {
-        if (previousActiveElement) {
-            previousActiveElement.focus();
-        }
-    });
+    const modalInstance = initializeModal('addLeaveTypeModal', 'leaveTypeName');
 
     database.ref('leave_types').once('value').then(snapshot => {
         const tableBody = document.getElementById('leaveTypesTable');
         tableBody.innerHTML = '';
 
         if (!snapshot.exists()) {
-            tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No leave types defined</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No leave types found</td></tr>';
             return;
         }
 
@@ -825,8 +908,8 @@ function loadLeaveTypes() {
                 <td>${typeData.name}</td>
                 <td>${typeData.description || '-'}</td>
                 <td>
-                    <button class="btn btn-sm btn-warning edit-type-btn" data-id="${type.key}">Edit</button>
-                    <button class="btn btn-sm btn-danger delete-type-btn" data-id="${type.key}">Delete</button>
+                    <button class="btn btn-sm btn-primary me-1 edit-type-btn" data-id="${type.key}">Edit</button>
+                    <button class="btn btn-danger btn-sm delete-type-btn" data-id="${type.key}">Delete</button>
                 </td>
             `;
             tableBody.appendChild(row);
@@ -854,7 +937,13 @@ function loadLeaveTypes() {
         });
     });
 
-    document.getElementById('addLeaveTypeForm')?.addEventListener('submit', async (e) => {
+    const addLeaveTypeForm = document.getElementById('addLeaveTypeForm');
+    if (addLeaveTypeForm) {
+        addLeaveTypeForm.removeEventListener('submit', handleAddLeaveType);
+        addLeaveTypeForm.addEventListener('submit', handleAddLeaveType);
+    }
+
+    async function handleAddLeaveType(e) {
         e.preventDefault();
 
         const name = document.getElementById('leaveTypeName').value;
@@ -863,7 +952,7 @@ function loadLeaveTypes() {
         try {
             await database.ref('leave_types').push().set({
                 name: name,
-                description: description
+                description: description || null
             });
             showNotification({
                 title: 'Success',
@@ -882,21 +971,101 @@ function loadLeaveTypes() {
                 icon: 'error'
             });
         }
-    });
+    }
 }
 
-function editLeaveType(typeId) {
-    alert('Edit leave type with ID: ' + typeId);
+async function editLeaveType(typeId) {
+    try {
+        const snapshot = await database.ref(`leave_types/${typeId}`).once('value');
+        const typeData = snapshot.val();
+
+        if (!typeData) {
+            showNotification({
+                title: 'Error',
+                text: 'Leave type not found',
+                icon: 'error'
+            });
+            return;
+        }
+
+        const html = `
+            <div class="modal fade" id="editLeaveTypeModal" class="modal" tabindex="-1" aria-label="editLeaveTypeModalLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editLeaveTypeModalLabel">Edit Leave Type</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editLeaveTypeForm">
+                                <div class="mb-3">
+                                    <label for="editLeaveTypeName" class="form-label">Name</label>
+                                    <input type="text" id="editLeaveTypeName" class="form-control" value="${typeData.name || ''}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editLeaveTypeDesc" class="form-label">Description</label>
+                                    <textarea class="form-control" id="editLeaveTypeDesc" rows="3">${typeData.description || ''}</textarea>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(document.createElement('div')).innerHTML = html;
+
+        const modal = new bootstrap.Modal(document.getElementById('editLeaveTypeModal'));
+        const editForm = document.getElementById('editLeaveTypeForm');
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const updatedData = {
+                name: document.getElementById('editLeaveTypeName').value,
+                description: document.getElementById('editLeaveTypeDesc').value || null
+            };
+
+            try {
+                await database.ref(`leave_types/${typeId}`).update(updatedData);
+                showNotification({
+                    title: 'Success',
+                    text: 'Leave type updated successfully',
+                    icon: 'success',
+                    toast: true
+                });
+                modal.hide();
+                loadLeaveTypes();
+            } catch (error) {
+                console.error('Error updating leave type:', error);
+                showNotification({
+                    title: 'Error',
+                    text: 'Error updating leave type: ' + error.message,
+                    icon: 'error'
+                });
+            }
+        });
+
+        modal.show();
+    } catch (error) {
+        console.error('Error loading leave type:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading leave type: ' + error.message,
+            icon: 'error'
+        });
+    }
 }
 
-function deleteLeaveType(typeId) {
+async function deleteLeaveType(typeId) {
     showNotification({
         title: 'Are you sure?',
         text: 'This action cannot be undone!',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'No, cancel',
+        cancelButtonText: 'Cancel',
         showConfirmButton: true
     }).then(async (result) => {
         if (result.isConfirmed) {
@@ -904,7 +1073,7 @@ function deleteLeaveType(typeId) {
                 await database.ref('leave_types/' + typeId).remove();
                 showNotification({
                     title: 'Deleted!',
-                    text: 'Leave type has been deleted successfully',
+                    text: 'Success to delete leave type',
                     icon: 'success',
                     toast: true
                 });
@@ -913,7 +1082,7 @@ function deleteLeaveType(typeId) {
                 console.error('Error deleting leave type:', error);
                 showNotification({
                     title: 'Error',
-                    text: 'Error deleting leave type: ' + error.message,
+                    text: 'Error deleting leave type:' + error.message,
                     icon: 'error'
                 });
             }
@@ -921,6 +1090,7 @@ function deleteLeaveType(typeId) {
     });
 }
 
+// Assign Leave
 function loadAssignLeave() {
     const html = `
         <div class="row">
@@ -971,12 +1141,13 @@ function loadAssignLeave() {
                                         <th>Leave Type</th>
                                         <th>Year</th>
                                         <th>Total Days</th>
+                                        <th>Remaining Days</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="leaveBalancesTable">
                                     <tr>
-                                        <td colspan="5" class="text-center">Loading...</td>
+                                        <td colspan="6" class="text-center">Loading...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -992,11 +1163,13 @@ function loadAssignLeave() {
     // Load users
     database.ref('users').once('value').then(snapshot => {
         const userSelect = document.getElementById('assignUser');
+        userSelect.innerHTML = '<option value="">Select user</option>';
+
         snapshot.forEach(user => {
             const userData = user.val();
             const option = document.createElement('option');
             option.value = user.key;
-            option.textContent = userData.name;
+            option.textContent = userData.name || userData.email;
             userSelect.appendChild(option);
         });
     }).catch(error => {
@@ -1011,6 +1184,8 @@ function loadAssignLeave() {
     // Load leave types
     database.ref('leave_types').once('value').then(snapshot => {
         const leaveTypeSelect = document.getElementById('assignLeaveType');
+        leaveTypeSelect.innerHTML = '<option value="">Select leave type</option>';
+
         snapshot.forEach(type => {
             const typeData = type.val();
             const option = document.createElement('option');
@@ -1033,7 +1208,7 @@ function loadAssignLeave() {
         tableBody.innerHTML = '';
 
         if (!snapshot.exists()) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No leave balances found</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No leave balances found</td></tr>';
             return;
         }
 
@@ -1050,12 +1225,14 @@ function loadAssignLeave() {
                     userName: userData ? userData.name : 'Unknown',
                     leaveTypeName: typeData ? typeData.name : 'Unknown',
                     year: balanceData.year,
-                    totalDays: balanceData.totalDays
+                    totalDays: balanceData.totalDays,
+                    remainingDays: balanceData.remainingDays
                 };
             }));
         });
 
         Promise.all(promises).then(balances => {
+            tableBody.innerHTML = '';
             balances.forEach(balance => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -1063,6 +1240,7 @@ function loadAssignLeave() {
                     <td>${balance.leaveTypeName}</td>
                     <td>${balance.year}</td>
                     <td>${balance.totalDays}</td>
+                    <td>${balance.remainingDays}</td>
                     <td>
                         <button class="btn btn-sm btn-danger" onclick="deleteLeaveBalance('${balance.key}')">Delete</button>
                     </td>
@@ -1079,21 +1257,56 @@ function loadAssignLeave() {
         });
     });
 
-    // Assign leave form submission
-    document.getElementById('assignLeaveForm')?.addEventListener('submit', async (e) => {
+    const assignLeaveForm = document.getElementById('assignLeaveForm');
+    if (assignLeaveForm) {
+        assignLeaveForm.removeEventListener('submit', handleAssignLeave);
+        assignLeaveForm.addEventListener('submit', handleAssignLeave);
+    }
+
+    async function handleAssignLeave(e) {
         e.preventDefault();
+
+        if (!auth.currentUser) {
+            showNotification({
+                title: 'Error',
+                text: 'User not authenticated',
+                icon: 'error'
+            });
+            return;
+        }
+
+        const userSnapshot = await database.ref(`users/${auth.currentUser.uid}/role`).once('value');
+        if (userSnapshot.val() !== 'admin') {
+            showNotification({
+                title: 'Error',
+                text: 'Only admins can assign leave balances',
+                icon: 'error'
+            });
+            return;
+        }
 
         const userId = document.getElementById('assignUser').value;
         const leaveTypeId = document.getElementById('assignLeaveType').value;
         const days = parseInt(document.getElementById('assignDays').value);
         const year = parseInt(document.getElementById('assignYear').value);
 
+        if (!userId || !leaveTypeId || isNaN(days) || days < 1 || isNaN(year) || year < 2000 || year > 2100) {
+            showNotification({
+                title: 'Error',
+                text: 'Please fill all fields correctly',
+                icon: 'error'
+            });
+            return;
+        }
+
         try {
             await database.ref('leave_balances').push().set({
                 userId: userId,
                 leaveTypeId: leaveTypeId,
                 year: year,
-                totalDays: days
+                totalDays: days,
+                remainingDays: days,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
             });
             showNotification({
                 title: 'Success',
@@ -1112,7 +1325,7 @@ function loadAssignLeave() {
                 icon: 'error'
             });
         }
-    });
+    }
 }
 
 async function deleteLeaveBalance(balanceId) {
@@ -1147,6 +1360,7 @@ async function deleteLeaveBalance(balanceId) {
     });
 }
 
+// Company Holidays
 function loadCompanyHolidays() {
     const html = `
         <div class="row">
@@ -1180,7 +1394,7 @@ function loadCompanyHolidays() {
             </div>
         </div>
 
-        <div class="modal fade" id="addHolidayModal" tabindex="-1" role="dialog" aria-labelledby="addHolidayModalLabel">
+        <div class="modal fade" id="addHolidayModal" tabindex="-1" aria-labelledby="addHolidayModalLabel">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -1209,6 +1423,8 @@ function loadCompanyHolidays() {
 
     document.getElementById('dashboardContent').innerHTML = html;
 
+    const modalInstance = initializeModal('addHolidayModal', 'holidayName');
+
     database.ref('holidays').once('value').then(snapshot => {
         const tableBody = document.getElementById('holidaysTable');
         tableBody.innerHTML = '';
@@ -1225,7 +1441,7 @@ function loadCompanyHolidays() {
                 <td>${holidayData.name}</td>
                 <td>${holidayData.date}</td>
                 <td>
-                    <button class="btn btn-sm btn-warning edit-holiday-btn" data-id="${holiday.key}">Edit</button>
+                    <button class="btn btn-sm btn-primary me-1 edit-holiday-btn" data-id="${holiday.key}">Edit</button>
                     <button class="btn btn-sm btn-danger delete-holiday-btn" data-id="${holiday.key}">Delete</button>
                 </td>
             `;
@@ -1254,11 +1470,26 @@ function loadCompanyHolidays() {
         });
     });
 
-    document.getElementById('addHolidayForm')?.addEventListener('submit', async (e) => {
+    const addHolidayForm = document.getElementById('addHolidayForm');
+    if (addHolidayForm) {
+        addHolidayForm.removeEventListener('submit', handleAddHoliday);
+        addHolidayForm.addEventListener('submit', handleAddHoliday);
+    }
+
+    async function handleAddHoliday(e) {
         e.preventDefault();
 
         const name = document.getElementById('holidayName').value;
         const date = document.getElementById('holidayDate').value;
+
+        if (!name || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            showNotification({
+                title: 'Error',
+                text: 'Please provide a valid name and date (YYYY-MM-DD)',
+                icon: 'error'
+            });
+            return;
+        }
 
         try {
             await database.ref('holidays').push().set({
@@ -1272,8 +1503,7 @@ function loadCompanyHolidays() {
                 toast: true
             });
             document.getElementById('addHolidayForm').reset();
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addHolidayModal'));
-            modal.hide();
+            modalInstance.hide();
             loadCompanyHolidays();
         } catch (error) {
             console.error('Error adding holiday:', error);
@@ -1283,14 +1513,103 @@ function loadCompanyHolidays() {
                 icon: 'error'
             });
         }
-    });
+    }
 }
 
-function editHoliday(holidayId) {
-    alert('Edit holiday with ID: ' + holidayId);
+async function editHoliday(holidayId) {
+    try {
+        const snapshot = await database.ref(`holidays/${holidayId}`).once('value');
+        const holidayData = snapshot.val();
+
+        if (!holidayData) {
+            showNotification({
+                title: 'Error',
+                text: 'Holiday not found',
+                icon: 'error'
+            });
+            return;
+        }
+
+        const html = `
+            <div class="modal fade" id="editHolidayModal" tabindex="-1" aria-labelledby="editHolidayModalLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editHolidayModalLabel">Edit Holiday</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editHolidayForm">
+                                <div class="mb-3">
+                                    <label for="editHolidayName" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="editHolidayName" value="${holidayData.name}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editHolidayDate" class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="editHolidayDate" value="${holidayData.date}" required>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(document.createElement('div')).innerHTML = html;
+
+        const modal = new bootstrap.Modal(document.getElementById('editHolidayModal'));
+        const editForm = document.getElementById('editHolidayForm');
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const updatedData = {
+                name: document.getElementById('editHolidayName').value,
+                date: document.getElementById('editHolidayDate').value
+            };
+
+            if (!updatedData.name || !updatedData.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                showNotification({
+                    title: 'Error',
+                    text: 'Please provide a valid name and date (YYYY-MM-DD)',
+                    icon: 'error'
+                });
+                return;
+            }
+
+            try {
+                await database.ref(`holidays/${holidayId}`).update(updatedData);
+                showNotification({
+                    title: 'Success',
+                    text: 'Holiday updated successfully',
+                    icon: 'success',
+                    toast: true
+                });
+                modal.hide();
+                loadCompanyHolidays();
+            } catch (error) {
+                console.error('Error updating holiday:', error);
+                showNotification({
+                    title: 'Error',
+                    text: 'Error updating holiday: ' + error.message,
+                    icon: 'error'
+                });
+            }
+        });
+
+        modal.show();
+    } catch (error) {
+        console.error('Error loading holiday:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error loading holiday: ' + error.message,
+            icon: 'error'
+        });
+    }
 }
 
-function deleteHoliday(holidayId) {
+async function deleteHoliday(holidayId) {
     showNotification({
         title: 'Are you sure?',
         text: 'This action cannot be undone!',
@@ -1322,6 +1641,7 @@ function deleteHoliday(holidayId) {
     });
 }
 
+// Reports
 function loadReports() {
     const html = `
         <div class="row">
@@ -1342,7 +1662,7 @@ function loadReports() {
                             </div>
                             <div class="col-md-4">
                                 <label for="reportYear" class="form-label">Year</label>
-                                <input type="number" class="form-control" id="reportYear" value="${new Date().getFullYear()}">
+                                <input type="number" class="form-control" id="reportYear" value="${new Date().getFullYear()}" min="2000" max="2100">
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
@@ -1365,50 +1685,31 @@ async function generateReport() {
     const year = parseInt(document.getElementById('reportYear').value);
     const reportOutput = document.getElementById('reportOutput');
 
+    if (isNaN(year) || year < 2000 || year > 2100) {
+        showNotification({
+            title: 'Error',
+            text: 'Please enter a valid year between 2000 and 2100',
+            icon: 'error'
+        });
+        return;
+    }
+
     try {
         let data = [];
         let headers = [];
 
         if (reportType === 'leaveBalances') {
             const snapshot = await database.ref('leave_balances').once('value');
-            headers = ['User', 'Leave Type', 'Year', 'Total Days'];
+            headers = ['User', 'Leave Type', 'Year', 'Total Days', 'Remaining Days'];
             snapshot.forEach(balance => {
                 const balanceData = balance.val();
                 if (balanceData.year === year) {
                     data.push([
-                        balanceData.userId, // Need to fetch user name
-                        balanceData.leaveTypeId, // Need to fetch leave type name
+                        balanceData.userId,
+                        balanceData.leaveTypeId,
                         balanceData.year,
-                        balanceData.totalDays
-                    ]);
-                }
-            });
-
-            // Fetch user and leave type names
-            const promises = data.map(async row => {
-                const userSnapshot = await database.ref(`users/${row[0]}`).once('value');
-                const typeSnapshot = await database.ref(`leave_types/${row[1]}`).once('value');
-                return [
-                    userSnapshot.val()?.name || 'Unknown',
-                    typeSnapshot.val()?.name || 'Unknown',
-                    row[2],
-                    row[3]
-                ];
-            });
-            data = await Promise.all(promises);
-        } else if (reportType === 'leaveRequests') {
-            const snapshot = await database.ref('leave_requests').once('value');
-            headers = ['User', 'Leave Type', 'Start Date', 'End Date', 'Status'];
-            snapshot.forEach(request => {
-                const requestData = request.val();
-                const startYear = new Date(requestData.startDate).getFullYear();
-                if (startYear === year) {
-                    data.push([
-                        requestData.userId,
-                        requestData.leaveTypeId,
-                        requestData.startDate,
-                        requestData.endDate,
-                        requestData.status
+                        balanceData.totalDays,
+                        balanceData.remainingDays
                     ]);
                 }
             });
@@ -1425,9 +1726,40 @@ async function generateReport() {
                 ];
             });
             data = await Promise.all(promises);
+        } else if (reportType === 'leaveRequests') {
+            const snapshot = await database.ref('leave_requests').once('value');
+            headers = ['User', 'Leave Type', 'Start Date', 'End Date', 'Days', 'Status'];
+            snapshot.forEach(request => {
+                const requestData = request.val();
+                const startYear = new Date(requestData.startDate).getFullYear();
+                if (startYear === year) {
+                    data.push([
+                        requestData.userId,
+                        requestData.leaveTypeId,
+                        requestData.startDate,
+                        requestData.endDate,
+                        requestData.days,
+                        requestData.status
+                    ]);
+                }
+            });
+
+            const promises = data.map(async row => {
+                const userSnapshot = await database.ref(`users/${row[0]}`).once('value');
+                const typeSnapshot = await database.ref(`leave_types/${row[1]}`).once('value');
+                return [
+                    userSnapshot.val()?.name || 'Unknown',
+                    typeSnapshot.val()?.name || 'Unknown',
+                    row[2],
+                    row[3],
+                    row[4],
+                    row[5]
+                ];
+            });
+            data = await Promise.all(promises);
         } else if (reportType === 'employeeDetails') {
             const snapshot = await database.ref('users').once('value');
-            headers = ['Name', 'Email', 'Role', 'Department', 'Employee ID'];
+            headers = ['Name', 'Email', 'Role', 'Department', 'Employee ID', 'Job Title'];
             snapshot.forEach(user => {
                 const userData = user.val();
                 data.push([
@@ -1435,7 +1767,8 @@ async function generateReport() {
                     userData.email,
                     userData.role,
                     userData.department || 'N/A',
-                    userData.employeeId || 'N/A'
+                    userData.employeeId || 'N/A',
+                    userData.jobTitle || 'N/A'
                 ]);
             });
         }
@@ -1445,7 +1778,6 @@ async function generateReport() {
             return;
         }
 
-        // Generate table
         let tableHtml = `
             <div class="table-responsive">
                 <table class="table table-striped">
@@ -1503,28 +1835,7 @@ function exportToCSV(reportType, year) {
     document.body.removeChild(link);
 }
 
-function initializeModal(modalId, inputId) {
-    const modal = document.getElementById(modalId);
-    const modalInstance = new bootstrap.Modal(modal);
-    let previousActiveElement;
-
-    modal.addEventListener('show.bs.modal', function () {
-        previousActiveElement = document.activeElement;
-    });
-
-    modal.addEventListener('shown.bs.modal', function () {
-        document.getElementById(inputId).focus();
-    });
-
-    modal.addEventListener('hidden.bs.modal', function () {
-        if (previousActiveElement) {
-            previousActiveElement.focus();
-        }
-    });
-
-    return modalInstance;
-}
-
+// Employee Directory
 function loadEmployeeDirectory() {
     const html = `
         <div class="row">
@@ -1595,21 +1906,29 @@ function loadEmployeeDirectory() {
 
         renderEmployeeCards(allEmployees);
 
-        document.getElementById('searchEmployee').addEventListener('input', (e) => {
+        const searchEmployee = document.getElementById('searchEmployee');
+        searchEmployee.removeEventListener('input', handleSearch);
+        searchEmployee.addEventListener('input', handleSearch);
+
+        const departmentFilter = document.getElementById('departmentFilterDirectory');
+        departmentFilter.removeEventListener('change', handleDepartmentFilter);
+        departmentFilter.addEventListener('change', handleDepartmentFilter);
+
+        function handleSearch(e) {
             const searchTerm = e.target.value.toLowerCase();
             const filteredEmployees = allEmployees.filter(employee =>
                 employee.name.toLowerCase().includes(searchTerm)
             );
             renderEmployeeCards(filteredEmployees);
-        });
+        }
 
-        document.getElementById('departmentFilterDirectory').addEventListener('change', (e) => {
+        function handleDepartmentFilter(e) {
             const selectedDepartment = e.target.value;
             const filteredEmployees = selectedDepartment === 'all'
                 ? allEmployees
                 : allEmployees.filter(employee => employee.department === selectedDepartment);
             renderEmployeeCards(filteredEmployees);
-        });
+        }
     }).catch(error => {
         console.error('Error loading employees:', error);
         showNotification({
@@ -1698,3 +2017,151 @@ async function showEmployeeDetails(userId) {
         });
     }
 }
+
+// Initialize Modal
+function initializeModal(modalId, focusElementId) {
+    const modalElement = document.getElementById(modalId);
+    if (!modalElement) {
+        console.error(`Modal with ID ${modalId} not found`);
+        return null;
+    }
+
+    const modal = new bootstrap.Modal(modalElement);
+
+    modalElement.addEventListener('shown.bs.modal', () => {
+        if (focusElementId) {
+            const focusElement = document.getElementById(focusElementId);
+            if (focusElement) {
+                focusElement.focus();
+            }
+        }
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', () => {
+        const form = modalElement.querySelector('form');
+        if (form) {
+            form.reset();
+        }
+    });
+
+    return modal;
+}
+
+// Logout functionality
+function logout() {
+    auth.signOut().then(() => {
+        window.location.href = 'index.html';
+    }).catch(error => {
+        console.error('Error signing out:', error);
+        showNotification({
+            title: 'Error',
+            text: 'Error signing out: ' + error.message,
+            icon: 'error'
+        });
+    });
+}
+
+// Attach logout event listener
+document.addEventListener('DOMContentLoaded', () => {
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+        logoutButton.removeEventListener('click', logout);
+        logoutButton.addEventListener('click', logout);
+    }
+});
+
+window.loadAdminAttendance = function() {
+    const database = window.firebaseShared.getDatabase();
+    if (!database) return;
+
+    // 1. Load departments into dropdown
+    const deptSelect = document.getElementById('attendanceDepartment');
+    if (deptSelect) {
+        database.ref('users').once('value').then(snapshot => {
+            const departments = new Set();
+            snapshot.forEach(userSnap => {
+                const dept = userSnap.val().department;
+                if (dept) departments.add(dept);
+            });
+            departments.forEach(dept => {
+                const opt = document.createElement('option');
+                opt.value = dept;
+                opt.textContent = dept;
+                deptSelect.appendChild(opt);
+            });
+        });
+    }
+
+    // 2. Initialize FullCalendar
+    const calendarEl = document.getElementById('attendanceCalendar');
+    if (!calendarEl) return;
+    if (calendarEl.innerHTML) calendarEl.innerHTML = '';
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        dateClick: function(info) {
+            loadAttendanceRecordsForDate(info.dateStr);
+        }
+    });
+    calendar.render();
+
+    // 3. Load records for selected date and department from /time_clock
+    function loadAttendanceRecordsForDate(dateStr) {
+        const recordsDiv = document.getElementById('attendanceRecords');
+        if (!recordsDiv) return;
+        recordsDiv.innerHTML = '<div class="text-center">Loading records...</div>';
+        const selectedDept = deptSelect ? deptSelect.value : '';
+        // Query all time_clock records for the date
+        database.ref('time_clock').once('value').then(snapshot => {
+            const usersPromise = database.ref('users').once('value');
+            usersPromise.then(usersSnap => {
+                const users = {};
+                usersSnap.forEach(userSnap => {
+                    users[userSnap.key] = userSnap.val();
+                });
+                const records = [];
+                snapshot.forEach(clockSnap => {
+                    const clock = clockSnap.val();
+                    if (!clock.timestamp) return;
+                    const dateObj = new Date(clock.timestamp);
+                    if (isNaN(dateObj.getTime())) return;
+                    const clockDate = dateObj.toISOString().split('T')[0];
+                    if (clockDate !== dateStr) return;
+                    const userData = users[clock.userId];
+                    if (!userData) return;
+                    if (selectedDept && userData.department !== selectedDept) return;
+                    records.push({
+                        name: userData.name,
+                        department: userData.department,
+                        type: clock.type,
+                        time: dateObj.toLocaleTimeString(),
+                        address: clock.address || `${clock.latitude || ''}, ${clock.longitude || ''}`
+                    });
+                });
+                if (records.length === 0) {
+                    recordsDiv.innerHTML = '<div class="alert alert-info">No clock in/out records found for this date.</div>';
+                } else {
+                    let html = `<table class="table table-bordered"><thead><tr><th>Name</th><th>Department</th><th>Type</th><th>Time</th><th>Address</th></tr></thead><tbody>`;
+                    records.forEach(r => {
+                        html += `<tr><td>${r.name}</td><td>${r.department || ''}</td><td>${r.type === 'in' ? 'Clock In' : 'Clock Out'}</td><td>${r.time}</td><td>${r.address}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    recordsDiv.innerHTML = html;
+                }
+            });
+        });
+    }
+
+    // Reload records when department changes
+    if (deptSelect) {
+        deptSelect.onchange = function() {
+            // Use today's date as default if no date selected
+            const today = new Date().toISOString().split('T')[0];
+            loadAttendanceRecordsForDate(today);
+        };
+    }
+};
